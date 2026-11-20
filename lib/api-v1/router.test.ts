@@ -116,6 +116,8 @@ describe("read-only", () => {
       "/sites/site-a/bing/traffic",
       "/sites/site-a/bing/keywords",
       "/sites/site-a/bing/pages",
+      "/sites/site-a/labrika/engines",
+      "/sites/site-a/labrika/positions",
     ]) {
       expect((await get(path)).status, path).toBe(200);
     }
@@ -146,6 +148,8 @@ describe("user isolation", () => {
       "/sites/site-b/bing/traffic",
       "/sites/site-b/bing/keywords",
       "/sites/site-b/bing/pages",
+      "/sites/site-b/labrika/engines",
+      "/sites/site-b/labrika/positions",
     ]) {
       const res = await get(path);
       expect(res.status, path).toBe(404);

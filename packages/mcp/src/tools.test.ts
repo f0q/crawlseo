@@ -72,6 +72,7 @@ const CALLS: [string, Record<string, unknown>, RegExp][] = [
   ["get_bing_traffic", { siteId: "site-a", days: 12 }, /Total: 20 clicks, 200 impressions, 53 pages crawled[\s\S]*\| -/],
   ["get_bing_keywords", { siteId: "site-a" }, /quilltab bing\s+\| 6\s+\| 400\s+\| 5\.0\s+\| 2/],
   ["get_bing_pages", { siteId: "site-a" }, /https:\/\/quilltab\.app\/\s+\| 3/],
+  ["get_labrika_positions", { siteId: "site-a" }, /Top 3: 1 \(\+1\)[\s\S]*not ranked: 1 \(\+1\)[\s\S]*quilltab app\s+\| 300\s+\| 2\s+\| \+3[\s\S]*notes app\s+\| 900\s+\| -\s+\| lost/],
   ["get_saved_keywords", { siteId: "site-a" }, /2 saved keywords[\s\S]*1 had no Search Console data[\s\S]*never seen query\s+\| -[\s\S]*launch target[\s\S]*quilltab notes\s+\| \d/],
 ];
 

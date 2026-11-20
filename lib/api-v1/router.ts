@@ -2,6 +2,7 @@ import type { KeyOwner } from "@/lib/access-keys";
 import { apiRateLimitPerMinute, RateLimiter } from "@/lib/rate-limit";
 import { checkKey } from "./auth";
 import * as read from "./handlers";
+import { labrikaEngines, labrikaPositions } from "@/lib/labrika/api-v1";
 import { ApiError } from "./params";
 
 /*
@@ -24,6 +25,8 @@ import { ApiError } from "./params";
  * GET /api/v1/sites/{siteId}/bing/keywords         Bing weekly queries summed over the period, &limit=
  * GET /api/v1/sites/{siteId}/bing/pages            the same for pages
  * GET /api/v1/sites/{siteId}/saved-keywords       saved keywords with their totals, ?days= or ?startDate=&endDate=
+ * GET /api/v1/sites/{siteId}/labrika/engines      agency fork: linked Labrika engines (lib/labrika/api-v1.ts)
+ * GET /api/v1/sites/{siteId}/labrika/positions    Labrika positions of an engine, ?engine=&date=&limit=&checks=
  */
 
 const PREFIX = "/api/v1/";
@@ -95,6 +98,14 @@ async function route(owner: KeyOwner, segments: string[], params: URLSearchParam
         return read.bingKeywords(site, params);
       case "pages":
         return read.bingPages(site, params);
+    }
+  }
+  if (segments.length === 4 && resource === "labrika") {
+    switch (segments[3]) {
+      case "engines":
+        return labrikaEngines(site);
+      case "positions":
+        return labrikaPositions(site, params);
     }
   }
   if (segments.length === 5 && resource === "crawls" && sub === "issues") {

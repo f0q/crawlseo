@@ -58,6 +58,25 @@ export async function seedApiFixtures(db: PrismaClient): Promise<Fixtures> {
     ],
   });
 
+  // Labrika (agency fork): two checks of one engine on site A, one of them
+  // not ranked on the latest check and one new to it; an engine on site B.
+  await db.externalRankEngine.createMany({
+    data: [
+      { id: "eng-a", siteId: "site-a", source: "labrika", externalSiteId: "uuid-a", externalEngineId: "101", host: "quilltab.app", engine: "Yandex", region: "Moscow (desktop)", device: "desktop" },
+      { id: "eng-b", siteId: "site-b", source: "labrika", externalSiteId: "uuid-b", externalEngineId: "201", host: "secret-b.com", engine: "Yandex", region: "Moscow (desktop)", device: "desktop" },
+    ],
+  });
+  await db.externalRank.createMany({
+    data: [
+      { engineId: "eng-a", keyword: "quilltab app", date: daysAgo(8), position: 5, url: "https://quilltab.app/", frequency: 300, frequencyExact: 40 },
+      { engineId: "eng-a", keyword: "quilltab app", date: daysAgo(1), position: 2, url: "https://quilltab.app/", frequency: 300, frequencyExact: 40 },
+      { engineId: "eng-a", keyword: "notes app", date: daysAgo(8), position: 12, url: "https://quilltab.app/notes", frequency: 900, frequencyExact: 70 },
+      { engineId: "eng-a", keyword: "notes app", date: daysAgo(1), position: null, url: null, frequency: 900, frequencyExact: 70 },
+      { engineId: "eng-a", keyword: "markdown notes", date: daysAgo(1), position: 25, url: "https://quilltab.app/md", frequency: null, frequencyExact: null },
+      { engineId: "eng-b", keyword: "secret b keyword", date: daysAgo(1), position: 1, url: "https://secret-b.com/private", frequency: 1, frequencyExact: 1 },
+    ],
+  });
+
   // Saved keywords: one with Search Console rows, a newer one with none.
   await db.savedKeyword.createMany({
     data: [
@@ -112,6 +131,8 @@ export async function snapshotUserData(db: PrismaClient): Promise<string> {
     db.savedKeyword.findMany({ orderBy: { id: "asc" } }),
     db.bingDaily.findMany({ orderBy: { id: "asc" } }),
     db.bingSearchWeekly.findMany({ orderBy: { id: "asc" } }),
+    db.externalRankEngine.findMany({ orderBy: { id: "asc" } }),
+    db.externalRank.findMany({ orderBy: { id: "asc" } }),
     db.job.findMany({ orderBy: { id: "asc" } }),
     db.alert.findMany({ orderBy: { id: "asc" } }),
     db.userSettings.findMany({ orderBy: { userId: "asc" } }),

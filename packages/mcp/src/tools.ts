@@ -23,6 +23,7 @@ import {
   formatTraffic,
   formatVitals,
 } from "./formatters";
+import { LABRIKA_TOOL_NAMES, registerLabrikaTools } from "./labrika";
 
 type Period = { startDate: string; endDate: string };
 type BingPeriod = Period & { bingSite: string };
@@ -73,6 +74,8 @@ export const TOOL_NAMES = [
   "get_bing_keywords",
   "get_bing_pages",
   "get_saved_keywords",
+  // Agency fork (./labrika.ts).
+  ...LABRIKA_TOOL_NAMES,
 ] as const;
 
 export function registerTools(server: McpServer, api: ApiClient): void {
@@ -358,6 +361,8 @@ export function registerTools(server: McpServer, api: ApiClient): void {
         return formatSavedKeywords(r.savedKeywords, r);
       })
   );
+
+  registerLabrikaTools(server, api, run, READ_ONLY);
 }
 
 /** A crawlseo MCP server with every tool, reading through `api`. */
