@@ -5,6 +5,9 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { DeleteSiteButton } from "@/components/sites/delete-site-button";
 import { BingSiteSection } from "@/components/settings/bing-site-section";
+import { LabrikaSiteSection } from "@/components/labrika/labrika-site-section";
+import { linkedEngines } from "@/lib/labrika/links";
+import { LABRIKA_UI } from "@/lib/labrika/messages";
 import { formatDay } from "@/lib/format";
 
 interface Props {
@@ -42,6 +45,13 @@ export default async function SettingsPage({ params }: Props) {
     where: { userId_provider: { userId: session.user.id, provider: "bing" } },
     select: { id: true },
   });
+  const [labrikaKey, labrikaEngines] = await Promise.all([
+    db.apiKey.findUnique({
+      where: { userId_provider: { userId: session.user.id, provider: "labrika" } },
+      select: { id: true },
+    }),
+    linkedEngines(db, siteId),
+  ]);
 
   return (
     <div>
@@ -90,6 +100,18 @@ export default async function SettingsPage({ params }: Props) {
             Bing Webmaster Tools is not connected.{" "}
             <Link href="/settings?connect=bing#connections" className="text-link font-medium">
               Connect Bing in Settings
+            </Link>
+          </p>
+        )}
+
+        {/* Labrika rank tracking (agency fork): only with a Labrika key */}
+        {labrikaKey ? (
+          <LabrikaSiteSection siteId={siteId} domain={site.domain} linked={labrikaEngines} />
+        ) : (
+          <p className="panel px-5 py-4 text-sm text-muted-foreground">
+            {LABRIKA_UI.settings.notConnectedKey}{" "}
+            <Link href="/settings?connect=labrika#connections" className="text-link font-medium">
+              {LABRIKA_UI.settings.connectKey}
             </Link>
           </p>
         )}

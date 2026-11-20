@@ -8,6 +8,7 @@ const { auth, db, redirect } = vi.hoisted(() => ({
   db: {
     site: { findUnique: vi.fn() },
     apiKey: { findUnique: vi.fn(), findMany: vi.fn() },
+    externalRankEngine: { findMany: vi.fn(async () => []) },
   },
   redirect: vi.fn((url: string) => {
     throw new Error(`REDIRECT ${url}`);

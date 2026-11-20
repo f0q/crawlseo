@@ -12,6 +12,7 @@ import {
   Loader2,
   Search,
   SearchCheck,
+  TrendingUp,
   type LucideIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -83,6 +84,18 @@ const KEY_PROVIDERS: KeyProviderConfig[] = [
     testable: true,
     disconnectNote:
       "Every site loses its Bing property, and the Bing data synced for your sites is deleted.",
+  },
+  {
+    // Agency fork: positions from Labrika (lib/labrika).
+    provider: "labrika",
+    name: "Labrika",
+    description: "Keyword positions in Yandex by region and device, from your Labrika rank tracking projects.",
+    icon: TrendingUp,
+    fields: [{ name: "apiKey", label: "API key", type: "password" }],
+    help: "In Labrika open your profile, Public API, and create a key with the serp:read scope. Positions need a Business or Agency subscription.",
+    helpLink: { href: "https://labrika.ru/dashboard#/user/public-api", label: "Open Labrika Public API" },
+    testable: true,
+    disconnectNote: "Every site loses its Labrika search engines, and the positions synced from Labrika are deleted.",
   },
   {
     provider: "dataforseo",

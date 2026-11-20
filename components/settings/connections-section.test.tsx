@@ -49,6 +49,7 @@ describe("ConnectionsSection", () => {
     expect([...html.matchAll(/data-provider="([a-z_]+)"/g)].map((m) => m[1])).toEqual([
       "google",
       "bing",
+      "labrika",
       "dataforseo",
       "google_pagespeed",
     ]);
