@@ -19,7 +19,7 @@ import { handleApiV1 } from "@/lib/api-v1/router";
 import { seedApiFixtures, snapshotUserData, type Fixtures } from "@/lib/testing/api-fixtures";
 import { createTestDb, type TestDb } from "@/lib/testing/pglite";
 import { NOTE_HISTORY } from "./schema";
-import { HTML, PDF } from "./test-files";
+import { HTML, PDF } from "@/lib/testing/project-files";
 
 let t: TestDb;
 let db: PrismaClient;

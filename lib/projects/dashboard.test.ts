@@ -17,7 +17,7 @@ vi.mock("@/lib/db", async () => {
 import { seedApiFixtures } from "@/lib/testing/api-fixtures";
 import { createTestDb, type TestDb } from "@/lib/testing/pglite";
 import { handleDashboardProjects } from "./dashboard";
-import { PDF } from "./test-files";
+import { PDF } from "@/lib/testing/project-files";
 
 let t: TestDb;
 let db: PrismaClient;

@@ -2,7 +2,7 @@ import { mkdtemp, readdir, rm } from "fs/promises";
 import { tmpdir } from "os";
 import { join } from "path";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
-import { DOCX, HTML, JPEG, PDF, PNG, SVG, TEXT, XLSX } from "./test-files";
+import { DOCX, HTML, JPEG, PDF, PNG, SVG, TEXT, XLSX } from "@/lib/testing/project-files";
 import { checkUpload, cleanFileName, contentDisposition, downloadResponse, MAX_UPLOAD_BYTES, readStoredFile, storeFile } from "./uploads";
 
 // Project uploads (agency fork): extension and content must agree, at most
