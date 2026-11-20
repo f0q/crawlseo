@@ -54,7 +54,8 @@ Serves streamable HTTP on `http://127.0.0.1:3333/mcp` and a health check on `/he
 | `get_bing_keywords` | Top Bing queries, summed over the weeks that end in the period (Bing reports by week) |
 | `get_bing_pages` | Top pages in Bing, summed the same way |
 | `get_saved_keywords` | Your saved keywords with their notes and Search Console totals, for the last N days or a date range |
-| `get_labrika_positions` | Agency fork: positions from the Labrika engine linked to a site, with the change since the previous check, top 3/10/30 counts and their trend |
+| `get_positions` | Agency fork: keyword positions of a site from any rank source (Labrika, a CSV import, pushed rows) for one engine, with the change since the previous check, top 3/10/30 counts and their trend |
+| `push_positions` | Agency fork, the one write tool: stores positions you collected under a source name of yours; needs a key with the write scope, a read-only key is refused |
 
 ## License
 

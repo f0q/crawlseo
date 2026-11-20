@@ -53,7 +53,7 @@ The app talks to outside services only in these cases:
 | Google (sign-in, Search Console, PageSpeed Insights) | When you sign in, connect Google, add a site or sync, run a vitals or index status check, or disconnect Google. Also on the schedule: a GSC sync per site each day and a vitals check per site each week, or as often as you set in Settings > Schedule | Requests for your own properties and pages | Don't run syncs, vitals or index status checks, or disconnect Google in Settings > Connections. For the schedule: vitals checks Off in Settings > Schedule, `SCHEDULE_GSC_SYNC_HOURS=0`, `SCHEDULE_VITALS_DAYS=0` or `SCHEDULER_ENABLED=false` |
 | Bing Webmaster Tools | Only if you add your own Bing API key; then also a sync per site each day | Requests for your own Bing sites | Remove the key in Settings > Connections, or `SCHEDULE_BING_SYNC_HOURS=0` |
 | DataForSEO | Only if you add your own DataForSEO key | The keyword and domain queries you run | Remove the key in Settings > Connections |
-| Labrika (agency fork) | Only if you add your own Labrika API key and link a Labrika search engine to a site; then also a sync per site each day | Read requests for your own Labrika rank tracking projects: their check dates and positions | Remove the key in Settings > Connections, or `SCHEDULE_LABRIKA_SYNC_HOURS=0` |
+| Labrika (agency fork, a rank provider) | Only if you add your own Labrika API key in Settings > Rank tracking and link a Labrika search engine to a site; then also a rank sync per site each day | Read requests for your own Labrika rank tracking projects: their check dates and positions | Remove the key in Settings > Rank tracking, or `SCHEDULE_RANK_SYNC_HOURS=0`. CSV imports and positions pushed through `/api/v1` contact no one |
 | Google autocomplete | Keyword suggestions when DataForSEO is not set up | The seed keyword you typed | Don't use keyword suggestions |
 | Sites you crawl | When you start a crawl, and on the schedule a crawl of each site each week, or as often as you set in Settings > Schedule (Docker) | Normal HTTP requests from your server, to the site and to the addresses its redirects point to | Don't start a crawl; for the schedule: crawls Off in Settings > Schedule, `SCHEDULE_CRAWL_DAYS=0` or `SCHEDULER_ENABLED=false` |
 | Your alert webhook | Only if you set a webhook URL in Settings > Alert webhook: when alerts fire, and when you click Send test | A signed JSON POST with the alerts that fired (type, message, site id and domain), to your own URL only | Remove the webhook in Settings; `ALERT_WEBHOOKS_ENABLED=false` turns webhooks off for the whole instance |
@@ -150,6 +150,8 @@ crawlseo has an MCP (Model Context Protocol) server, so an AI agent such as Clau
 
 **The MCP is read-only.** Its tools read your data and nothing else: no tool writes, changes, queues or triggers anything. There is no `run_crawl` and no sync; crawls and syncs start in the app or on the schedule. Every tool reads through your instance's API (`/api/v1`) with an access key, never from the database, and a key sees the sites of its own account only.
 
+Agency fork: one exception, `push_positions`, stores keyword positions you collected yourself (`POST /api/v1/sites/{id}/positions`). It works only with a key created with the write scope in Settings > MCP; existing keys and new keys by default stay read-only and are refused. See [docs/agency/rank-providers.md](docs/agency/rank-providers.md).
+
 ### Create a key
 
 1. Open **Settings > MCP** in crawlseo and choose **Turn on**. MCP is off until you do, and while it is off every key is refused.
@@ -191,7 +193,8 @@ Tested end to end with Claude Code.
 | `get_bing_keywords` | Top Bing queries, summed over the weeks that end in the period (Bing reports by week) |
 | `get_bing_pages` | Top pages in Bing, summed the same way |
 | `get_saved_keywords` | Your saved keywords with their notes and Search Console totals, for the last N days or a date range |
-| `get_labrika_positions` | Agency fork: positions from the Labrika engine linked to a site, with the change since the previous check, top 3/10/30 counts and their trend |
+| `get_positions` | Agency fork: keyword positions of a site from any rank source (Labrika, a CSV import, pushed rows) for one engine, with the change since the previous check, top 3/10/30 counts and their trend |
+| `push_positions` | Agency fork, the one write tool: stores positions you collected under a source name of yours; needs a write-scoped key |
 
 The MCP talks only to your own instance, so it adds no outside service to [Your data stays yours](#your-data-stays-yours).
 
@@ -577,7 +580,7 @@ There is no long-running process on Vercel, so:
 | `SCHEDULER_ENABLED` | No | Set to `false` to stop all scheduled jobs. Buttons keep working |
 | `SCHEDULE_GSC_SYNC_HOURS` | No | Hours between GSC syncs of a site (default `24`, `0` turns them off) |
 | `SCHEDULE_BING_SYNC_HOURS` | No | Hours between Bing syncs of a site (default `24`, `0` turns them off) |
-| `SCHEDULE_LABRIKA_SYNC_HOURS` | No | Agency fork: hours between Labrika syncs of a site with a linked Labrika engine (default `24`, `0` turns them off) |
+| `SCHEDULE_RANK_SYNC_HOURS` | No | Agency fork: hours between rank syncs of a site with a linked rank provider engine such as Labrika (default `24`, `0` turns them off). The older `SCHEDULE_LABRIKA_SYNC_HOURS` is still read when this one is not set |
 | `SCHEDULE_CRAWL_DAYS` | No | Days between scheduled crawls of a site (default `7`, `0` turns them off). Each user can set their own interval in Settings > Schedule; `0` here keeps crawls off for everyone. Docker only |
 | `SCHEDULE_VITALS_DAYS` | No | Days between scheduled vitals checks of a site (default `7`, `0` turns them off). Each user can set their own interval in Settings > Schedule; `0` here keeps them off for everyone. Docker only |
 | `ALERT_WEBHOOKS_ENABLED` | No | Set to `false` to turn alert webhooks off for the instance: nothing is sent and Settings shows no webhook form. See [Alert webhooks](#alert-webhooks) |
