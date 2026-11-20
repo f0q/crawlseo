@@ -3,7 +3,8 @@
  * requests to the instance's /api/v1 API with the user's access key, so it
  * sees that user's sites only, and writes, queues or triggers nothing. The
  * exception (agency fork) is push_positions, which stores rank positions and
- * works only with a key of the write scope.
+ * works only with a key of the write scope, and the project tools that write
+ * (./projects.ts), with the same scope.
  */
 
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -26,6 +27,7 @@ import {
   formatVitals,
 } from "./formatters";
 import { RANK_TOOL_NAMES, RANK_WRITE_TOOL_NAMES, registerRankTools } from "./rank";
+import { PROJECT_TOOL_NAMES, PROJECT_WRITE_TOOL_NAMES, registerProjectTools } from "./projects";
 
 type Period = { startDate: string; endDate: string };
 type BingPeriod = Period & { bingSite: string };
@@ -78,10 +80,11 @@ export const TOOL_NAMES = [
   "get_saved_keywords",
   // Agency fork (./rank.ts).
   ...RANK_TOOL_NAMES,
+  ...PROJECT_TOOL_NAMES,
 ] as const;
 
 /** Agency fork: the tools that write. The API refuses them unless the key has the write scope. */
-export const WRITE_TOOL_NAMES = [...RANK_WRITE_TOOL_NAMES] as const;
+export const WRITE_TOOL_NAMES = [...RANK_WRITE_TOOL_NAMES, ...PROJECT_WRITE_TOOL_NAMES] as const;
 
 export function registerTools(server: McpServer, api: ApiClient): void {
   server.registerTool(
@@ -368,6 +371,7 @@ export function registerTools(server: McpServer, api: ApiClient): void {
   );
 
   registerRankTools(server, api, run, READ_ONLY);
+  registerProjectTools(server, api, run, READ_ONLY);
 }
 
 /** A crawlseo MCP server with every tool, reading through `api`. */

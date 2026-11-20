@@ -21,6 +21,7 @@ import { seedApiFixtures, snapshotUserData, type Fixtures } from "@/lib/testing/
 import { createTestDb, type TestDb } from "@/lib/testing/pglite";
 import { createApiClient } from "./api-client";
 import { createMcpServer, TOOL_NAMES, WRITE_TOOL_NAMES } from "./tools";
+import { PROJECT_TOOL_NAMES } from "./projects";
 
 let t: TestDb;
 let db: PrismaClient;
@@ -75,16 +76,19 @@ const CALLS: [string, Record<string, unknown>, RegExp][] = [
   ["get_bing_pages", { siteId: "site-a" }, /https:\/\/quilltab\.app\/\s+\| 3/],
   ["get_positions", { siteId: "site-a" }, /source Labrika[\s\S]*\[CSV import\][\s\S]*Top 3: 1 \(\+1\)[\s\S]*not ranked: 1 \(\+1\)[\s\S]*quilltab app\s+\| 300\s+\| 2\s+\| \+3[\s\S]*notes app\s+\| 900\s+\| -\s+\| lost/],
   ["get_positions", { siteId: "site-a", source: "import" }, /source CSV import[\s\S]*quilltab app\s+\| -\s+\| 4/],
+  ["list_projects", {}, /Quilltab\s+\(slug: quilltab, client, your role: owner\)[\s\S]*quilltab\.app \(site-a\)[\s\S]*Open tasks: 1/],
+  ["get_project", { slug: "quilltab" }, /Project Quilltab[\s\S]*QUILLTAB_PANEL_PASS[\s\S]*\[brief\] Brief[\s\S]*Grow organic sign-ups[\s\S]*\[todo\] Fix titles[\s\S]*Audited the titles/],
   ["get_saved_keywords", { siteId: "site-a" }, /2 saved keywords[\s\S]*1 had no Search Console data[\s\S]*never seen query\s+\| -[\s\S]*launch target[\s\S]*quilltab notes\s+\| \d/],
 ];
 
 describe("MCP tools", () => {
-  it("lists the read-only tools, each marked read-only, and the one write tool marked as such", async () => {
+  it("lists the read-only tools, each marked read-only, and the write tools marked as such", async () => {
     const client = await connect(f.keyA);
     const { tools } = await client.listTools();
     expect(tools.map((t) => t.name).sort()).toEqual([...TOOL_NAMES, ...WRITE_TOOL_NAMES].sort());
     for (const tool of tools.filter((t) => (WRITE_TOOL_NAMES as readonly string[]).includes(t.name))) {
-      expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: true });
+      // create_project (agency fork) makes a new project each time; every other write is an upsert.
+      expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: tool.name !== "create_project" });
     }
     for (const tool of tools.filter((t) => (TOOL_NAMES as readonly string[]).includes(t.name))) {
       expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: true, destructiveHint: false });
@@ -114,7 +118,8 @@ describe("MCP tools", () => {
 
   it("another user's site reads as not found through every site tool", async () => {
     const client = await connect(f.keyA);
-    for (const name of TOOL_NAMES.filter((n) => n !== "list_sites")) {
+    const notSiteTools: readonly string[] = ["list_sites", ...PROJECT_TOOL_NAMES];
+    for (const name of TOOL_NAMES.filter((n) => !notSiteTools.includes(n))) {
       const res = await call(client, name, { siteId: "site-b" });
       expect(res.isError, name).toBe(true);
       expect(res.text, name).toBe("Site not found");
