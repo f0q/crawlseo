@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 // TEST on a connected row checks the key already saved for the session user. The key is decrypted on the
 // server and never sent back: the response is only { success }.
 
-const { db, testBingKey, testConnection } = vi.hoisted(() => ({
+const { db, testBingKey, testLabrikaKey, testConnection } = vi.hoisted(() => ({
   db: { apiKey: { findUnique: vi.fn() } },
   testBingKey: vi.fn(async () => true),
+  testLabrikaKey: vi.fn(async () => true),
   testConnection: vi.fn(async () => true),
 }));
 
@@ -13,6 +14,7 @@ vi.mock("@/lib/auth", () => ({ auth: async () => ({ user: { id: "user-1" } }) })
 vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/lib/encryption", () => ({ decrypt: (v: string) => v.replace(/^enc:/, "") }));
 vi.mock("@/lib/bing", () => ({ testBingKey }));
+vi.mock("@/lib/labrika", () => ({ testLabrikaKey }));
 vi.mock("@/lib/dataforseo/client", () => ({ testConnection }));
 
 import { POST } from "./route";
@@ -34,6 +36,16 @@ describe("testing the saved key", () => {
     expect(db.apiKey.findUnique).toHaveBeenCalledWith(
       expect.objectContaining({ where: { userId_provider: { userId: "user-1", provider: "bing" } } })
     );
+  });
+
+  it("tests the saved Labrika key the same way (agency fork)", async () => {
+    db.apiKey.findUnique.mockResolvedValue({ encryptedLogin: null, encryptedPassword: "enc:labrika-secret" });
+    const res = await post({ provider: "labrika", saved: true });
+    const text = await res.text();
+    expect(JSON.parse(text)).toEqual({ success: true });
+    expect(text).not.toContain("labrika-secret");
+    expect(testLabrikaKey).toHaveBeenCalledWith("labrika-secret");
+    expect(testBingKey).not.toHaveBeenCalled();
   });
 
   it("tests the saved DataForSEO login and password", async () => {

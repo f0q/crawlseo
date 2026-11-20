@@ -1,0 +1,8 @@
+{
+  "data": [
+    { "collected_at": "2026-11-18T00:00:00Z" },
+    { "collected_at": "2026-11-11T00:00:00Z" },
+    { "collected_at": "not a date" }
+  ],
+  "pagination": { "has_more": false, "limit": 100, "next_offset": null, "offset": 0 }
+}

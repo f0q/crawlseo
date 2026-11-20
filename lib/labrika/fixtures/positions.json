@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "frequency": 369,
+      "frequency_exact": 8,
+      "keyword": "книги на иностранных языках",
+      "positions": {
+        "2026-11-18T00:00:00Z": { "position": null, "url": null },
+        "2026-11-11T00:00:00Z": { "position": 14, "url": "https://books.example.com/catalog/" }
+      }
+    },
+    {
+      "frequency": 29,
+      "frequency_exact": 0,
+      "keyword": "магазин иностранной книги",
+      "positions": {
+        "2026-11-18T00:00:00Z": { "position": 3, "url": "https://books.example.com/" }
+      }
+    }
+  ],
+  "pagination": { "has_more": false, "limit": 100, "next_offset": null, "offset": 0 }
+}

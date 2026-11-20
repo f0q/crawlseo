@@ -3,16 +3,20 @@ import { db } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
 import { testConnection } from "@/lib/dataforseo/client";
 import { testBingKey } from "@/lib/bing";
+import { testLabrikaKey } from "@/lib/labrika";
 
 /** Providers with a connection test. PageSpeed has none. */
-const TESTABLE = ["dataforseo", "bing"] as const;
+const TESTABLE = ["dataforseo", "bing", "labrika"] as const;
 type Testable = (typeof TESTABLE)[number];
 
+/** Providers that issue one account-wide key, sent as `apiKey`. */
+const isSingleKey = (provider: string) => provider === "bing" || provider === "labrika";
+
 function runTest(provider: Testable, creds: { login?: string; password?: string; apiKey?: string }) {
-  // Bing issues one account-wide key, sent as `apiKey`; DataForSEO a login and password.
-  return provider === "bing"
-    ? testBingKey(creds.apiKey ?? "")
-    : testConnection(creds.login ?? "", creds.password ?? "");
+  // Bing and Labrika issue one account-wide key; DataForSEO a login and password.
+  if (provider === "bing") return testBingKey(creds.apiKey ?? "");
+  if (provider === "labrika") return testLabrikaKey(creds.apiKey ?? "");
+  return testConnection(creds.login ?? "", creds.password ?? "");
 }
 
 /**
@@ -53,7 +57,7 @@ export async function POST(req: Request) {
       let creds: { login?: string; password?: string; apiKey?: string };
       try {
         creds =
-          provider === "bing"
+          isSingleKey(provider)
             ? { apiKey: decrypt(stored.encryptedPassword) }
             : {
                 login: decrypt(stored.encryptedLogin ?? ""),
@@ -66,9 +70,9 @@ export async function POST(req: Request) {
       return Response.json({ success: await runTest(provider as Testable, creds) });
     }
 
-    if (provider === "bing" ? !body.apiKey : !body.login || !body.password) {
+    if (isSingleKey(provider) ? !body.apiKey : !body.login || !body.password) {
       return Response.json(
-        { error: provider === "bing" ? "Missing API key" : "Missing login or password" },
+        { error: isSingleKey(provider) ? "Missing API key" : "Missing login or password" },
         { status: 400 }
       );
     }

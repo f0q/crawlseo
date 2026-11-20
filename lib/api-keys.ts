@@ -5,7 +5,8 @@ import type { PrismaClient } from "@prisma/client";
  * password pair; the others take one key, stored in `encryptedPassword` with
  * `encryptedLogin` left null.
  */
-export const API_KEY_PROVIDERS = ["dataforseo", "google_pagespeed", "bing"] as const;
+// labrika: agency fork (lib/labrika).
+export const API_KEY_PROVIDERS = ["dataforseo", "google_pagespeed", "bing", "labrika"] as const;
 export type ApiKeyProvider = (typeof API_KEY_PROVIDERS)[number];
 
 export type ApiKeyStatus = Record<string, { connected: boolean; updatedAt?: string }>;

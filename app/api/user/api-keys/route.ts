@@ -40,7 +40,7 @@ export async function POST(req: Request) {
     }
 
     // dataforseo: login + password (Basic Auth style credentials).
-    // google_pagespeed, bing: a single key string - no login concept.
+    // google_pagespeed, bing, labrika: a single key string - no login concept.
     let encryptedLogin: string | null;
     let encryptedPassword: string;
 
@@ -122,6 +122,13 @@ export async function DELETE(req: Request) {
         }),
         db.bingSearchWeekly.deleteMany({ where: { site: { userId } } }),
         db.bingDaily.deleteMany({ where: { site: { userId } } }),
+        deleteKey,
+      ]);
+    } else if (body.provider === "labrika") {
+      // Like Bing: another key may not see these projects, so the links and
+      // the positions synced through them go with the key.
+      await db.$transaction([
+        db.externalRankEngine.deleteMany({ where: { source: "labrika", site: { userId } } }),
         deleteKey,
       ]);
     } else {

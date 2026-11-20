@@ -1,0 +1,22 @@
+{
+  "data": [
+    {
+      "host": "books.example.com",
+      "search_engines": [
+        { "device": "desktop", "engine_title": "Яндекс", "id": 41310, "region_title": "Москва (ПК)" },
+        { "device": "mobile", "engine_title": "Яндекс", "id": 41311, "region_title": "Москва (mobile)" }
+      ],
+      "site_uuid": "350a586273314ceb8dafb2ee93c32b4f",
+      "title": "books.example.com"
+    },
+    {
+      "host": "www.school.example.com",
+      "search_engines": [
+        { "device": "desktop", "engine_title": "Яндекс", "id": 40707, "region_title": "Санкт-Петербург и Ленинградская область (ПК)" }
+      ],
+      "site_uuid": "7a64132a55b149ecbcdb8949faa0e469",
+      "title": "school.example.com"
+    }
+  ],
+  "pagination": { "has_more": true, "limit": 2, "next_offset": 2, "offset": 0 }
+}

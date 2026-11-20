@@ -12,6 +12,7 @@ const db = vi.hoisted(() => ({
   site: { updateMany: vi.fn(() => "clear-properties") },
   bingSearchWeekly: { deleteMany: vi.fn(() => "delete-weekly") },
   bingDaily: { deleteMany: vi.fn(() => "delete-daily") },
+  externalRankEngine: { deleteMany: vi.fn(() => "delete-labrika-engines") },
   $transaction: vi.fn(async (ops: unknown[]) => ops),
 }));
 
@@ -59,5 +60,15 @@ describe("api-keys provider allow-list", () => {
     expect(db.bingSearchWeekly.deleteMany).not.toHaveBeenCalled();
     expect(db.bingDaily.deleteMany).not.toHaveBeenCalled();
     expect(db.$transaction).not.toHaveBeenCalled();
+  });
+
+  it("removing the Labrika key unlinks the user's Labrika engines with it (agency fork)", async () => {
+    vi.clearAllMocks();
+    const res = await DELETE(json("DELETE", { provider: "labrika" }));
+    expect(res.status).toBe(200);
+    expect(db.externalRankEngine.deleteMany).toHaveBeenCalledWith({
+      where: { source: "labrika", site: { userId: "user-1" } },
+    });
+    expect(db.$transaction).toHaveBeenCalledWith(["delete-labrika-engines", "delete-key"]);
   });
 });

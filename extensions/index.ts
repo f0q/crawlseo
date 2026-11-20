@@ -16,11 +16,14 @@
  * all routes, server actions and the job loop of that process.
  */
 
+import { registerLabrika } from "@/lib/labrika/jobs";
+
 const holder = globalThis as unknown as { crawlseoExtensionsRegistered?: boolean };
 
 /** Registers this deployment's extensions. Safe to call more than once. */
 export function registerExtensions(): void {
   if (holder.crawlseoExtensionsRegistered) return;
   holder.crawlseoExtensionsRegistered = true;
-  // Nothing to register in the open-source app.
+  // Agency fork: Labrika positions, a sync job per site with a daily schedule.
+  registerLabrika();
 }
