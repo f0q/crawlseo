@@ -2,7 +2,9 @@ name: Build and publish Docker image
 
 on:
   push:
-    branches: [main]
+    # agency: the f0q fork's deploy branch, published as :agency (see the
+    # metadata step of the merge job).
+    branches: [main, agency]
     tags: ["v*.*.*"]
     # Docs-only pushes keep the current image. Path filters are not evaluated
     # for tag pushes, so releases always publish. Pull requests are not
@@ -229,8 +231,11 @@ jobs:
           # prerelease such as v1.3.0-rc.1.
           flavor: |
             latest=auto
+          # The fork's agency branch publishes :agency and :sha-<short>; IMAGE_NAME
+          # is the repository, so on the fork that is ghcr.io/f0q/crawlseo.
           tags: |
             type=edge,branch=main
+            type=raw,value=agency,enable=${{ github.ref == 'refs/heads/agency' }}
             type=semver,pattern={{version}}
             type=semver,pattern={{major}}.{{minor}}
             type=sha

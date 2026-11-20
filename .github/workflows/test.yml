@@ -2,7 +2,8 @@ name: Test
 
 on:
   push:
-    branches: [main]
+    # agency: the f0q fork's deploy branch.
+    branches: [main, agency]
   pull_request:
 
 jobs:
