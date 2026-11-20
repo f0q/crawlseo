@@ -3,6 +3,8 @@ import { apiRateLimitPerMinute, RateLimiter } from "@/lib/rate-limit";
 import { checkKey } from "./auth";
 import * as read from "./handlers";
 import { MAX_PUSH_BYTES, positions, pushPositions, rankEngines } from "@/lib/rank-providers/api-v1";
+import { PROJECT_API_METHODS, PROJECTS_ROOT, projectsApi } from "@/lib/projects/api-v1";
+import { PROJECT_MESSAGES } from "@/lib/projects/messages";
 import { ApiError } from "./params";
 
 /*
@@ -29,6 +31,7 @@ import { ApiError } from "./params";
  * GET /api/v1/sites/{siteId}/rank-engines         agency fork: rank engines of every source, ?source= (lib/rank-providers/api-v1.ts)
  * GET /api/v1/sites/{siteId}/positions            positions of an engine, ?engine=&source=&date=&from=&to=&limit=&checks=
  * POST /api/v1/sites/{siteId}/positions           write-scoped key: a batch of rows of one source and engine
+ * GET|POST|PATCH /api/v1/projects/...             agency fork: client projects, writes with a write-scoped key (lib/projects/http.ts)
  */
 
 const PREFIX = "/api/v1/";
@@ -151,7 +154,12 @@ export async function handleApiV1(req: Request, opts: { countRequest?: boolean }
   const path = url.pathname.startsWith(PREFIX) ? url.pathname.slice(PREFIX.length) : "";
   const rawSegments = path.split("/").filter(Boolean);
   const writing = req.method === "POST" && isWritePath(rawSegments);
-  if (req.method !== "GET" && !writing) {
+  // Agency fork: client projects take GET, POST and PATCH (lib/projects).
+  const projects = rawSegments[0] === PROJECTS_ROOT;
+  if (projects && !(PROJECT_API_METHODS as readonly string[]).includes(req.method)) {
+    return json({ error: PROJECT_MESSAGES.errors.method }, 405, { Allow: PROJECT_API_METHODS.join(", ") });
+  }
+  if (req.method !== "GET" && !writing && !projects) {
     return json({ error: "Only GET, and POST to /sites/{siteId}/positions" }, 405, {
       Allow: isWritePath(rawSegments) ? "GET, POST" : "GET",
     });
@@ -168,6 +176,16 @@ export async function handleApiV1(req: Request, opts: { countRequest?: boolean }
     if (!rate.ok) return json({ error: RATE_LIMITED_MESSAGE }, 429, rateHeaders);
 
     const segments = rawSegments.map(segment);
+    if (projects) {
+      if (req.method !== "GET") {
+        if (owner.scope !== "write") return json({ error: PROJECT_MESSAGES.errors.readOnlyKey }, 403, rateHeaders);
+        const w = countWrite(owner.keyId);
+        if (!w.ok) return json({ error: RATE_LIMITED_MESSAGE }, 429, { ...rateHeaders, ...w.headers });
+      }
+      const res = await projectsApi(owner, req, segments, url.searchParams);
+      for (const [k, v] of Object.entries(rateHeaders)) res.headers.set(k, v);
+      return res;
+    }
     if (writing) {
       if (owner.scope !== "write") return json({ error: READ_ONLY_KEY_MESSAGE }, 403, rateHeaders);
       const w = countWrite(owner.keyId);

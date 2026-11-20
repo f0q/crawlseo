@@ -123,6 +123,35 @@ export async function seedApiFixtures(db: PrismaClient): Promise<Fixtures> {
     ],
   });
 
+  // Client projects (agency fork): one of user A's with site A, a note, a task
+  // and a journal entry, and one of user B's.
+  await db.project.create({
+    data: {
+      id: "proj-a",
+      slug: "quilltab",
+      name: "Quilltab",
+      status: "client",
+      ownerId: "user-a",
+      searchEngines: ["Google"],
+      accessNotes: "Hosting panel: QUILLTAB_PANEL_PASS in the agent env file",
+      members: { create: { userId: "user-a", role: "owner" } },
+      notes: { create: { id: "note-a", kind: "brief", title: "Brief", body: "Grow organic sign-ups.", updatedBy: "a@quilltab.app" } },
+      tasks: { create: { id: "task-a", title: "Fix titles", externalKey: "t1" } },
+      journal: { create: { id: "entry-a", date: daysAgo(2), text: "Audited the titles", author: "a@quilltab.app" } },
+    },
+  });
+  await db.site.update({ where: { id: "site-a" }, data: { projectId: "proj-a" } });
+  await db.project.create({
+    data: {
+      id: "proj-b",
+      slug: "secret-b",
+      name: "Secret B",
+      ownerId: "user-b",
+      members: { create: { userId: "user-b", role: "owner" } },
+      notes: { create: { kind: "brief", title: "Brief", body: "secret b brief", updatedBy: "b@quilltab.app" } },
+    },
+  });
+
   const a = await createAccessKey(db, "user-a", "laptop");
   const b = await createAccessKey(db, "user-b", "laptop");
   const off = await createAccessKey(db, "user-off", "laptop");
@@ -151,6 +180,13 @@ export async function snapshotUserData(db: PrismaClient): Promise<string> {
     db.alert.findMany({ orderBy: { id: "asc" } }),
     db.userSettings.findMany({ orderBy: { userId: "asc" } }),
     db.accessKey.findMany({ orderBy: { id: "asc" }, select: { id: true, userId: true, name: true, keyHash: true, prefix: true } }),
+    db.project.findMany({ orderBy: { id: "asc" } }),
+    db.membership.findMany({ orderBy: { id: "asc" } }),
+    db.projectNote.findMany({ orderBy: { id: "asc" } }),
+    db.projectNoteVersion.findMany({ orderBy: { id: "asc" } }),
+    db.projectFile.findMany({ orderBy: { id: "asc" } }),
+    db.journalEntry.findMany({ orderBy: { id: "asc" } }),
+    db.projectTask.findMany({ orderBy: { id: "asc" } }),
   ]);
   return JSON.stringify(tables);
 }
