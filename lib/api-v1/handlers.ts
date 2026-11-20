@@ -55,7 +55,7 @@ async function withStaleAsFailed(crawls: CrawlRow[]): Promise<CrawlRow[]> {
 
 /** The key making the request, so a client can check its key without reading any data. */
 export async function keyInfo(keyId: string) {
-  const key = await db.accessKey.findUnique({ where: { id: keyId }, select: { name: true, prefix: true, createdAt: true } });
+  const key = await db.accessKey.findUnique({ where: { id: keyId }, select: { name: true, prefix: true, createdAt: true, scope: true } });
   if (!key) throw new ApiError(401, "Invalid API key");
   return { key };
 }

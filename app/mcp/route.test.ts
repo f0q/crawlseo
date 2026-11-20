@@ -16,7 +16,7 @@ vi.mock("@/lib/db", async () => {
 import { createAccessKey } from "@/lib/access-keys";
 import { seedApiFixtures, snapshotUserData, type Fixtures } from "@/lib/testing/api-fixtures";
 import { createTestDb, type TestDb } from "@/lib/testing/pglite";
-import { TOOL_NAMES } from "@/packages/mcp/src/tools";
+import { TOOL_NAMES, WRITE_TOOL_NAMES } from "@/packages/mcp/src/tools";
 import { DELETE, GET, POST } from "./route";
 
 let t: TestDb;
@@ -101,8 +101,10 @@ describe("/mcp", () => {
   it("serves the read-only tools for the key's user, and nothing changes", async () => {
     const client = await connect(f.keyA);
     const { tools } = await client.listTools();
-    expect(tools.map((tool) => tool.name).sort()).toEqual([...TOOL_NAMES].sort());
-    expect(tools.every((tool) => tool.annotations?.readOnlyHint === true)).toBe(true);
+    // Agency fork: push_positions is listed too; the API refuses it without a write-scoped key.
+    expect(tools.map((tool) => tool.name).sort()).toEqual([...TOOL_NAMES, ...WRITE_TOOL_NAMES].sort());
+    const readTools = tools.filter((tool) => !(WRITE_TOOL_NAMES as readonly string[]).includes(tool.name));
+    expect(readTools.every((tool) => tool.annotations?.readOnlyHint === true)).toBe(true);
 
     const before = await snapshotUserData(db);
     const sites = (await client.callTool({ name: "list_sites", arguments: {} })) as { content: { text: string }[] };

@@ -1,13 +1,18 @@
 import type { PrismaClient } from "@prisma/client";
+import { rankProviderIds } from "@/lib/rank-providers/registry";
 
 /**
  * Providers with a key stored per user in ApiKey. dataforseo takes a login +
  * password pair; the others take one key, stored in `encryptedPassword` with
  * `encryptedLogin` left null.
  */
-// labrika: agency fork (lib/labrika).
-export const API_KEY_PROVIDERS = ["dataforseo", "google_pagespeed", "bing", "labrika"] as const;
+export const API_KEY_PROVIDERS = ["dataforseo", "google_pagespeed", "bing"] as const;
 export type ApiKeyProvider = (typeof API_KEY_PROVIDERS)[number];
+
+/** Agency fork: every provider with a stored key, the rank providers (lib/rank-providers) included. */
+export function allKeyProviders(): string[] {
+  return [...API_KEY_PROVIDERS, ...rankProviderIds()];
+}
 
 export type ApiKeyStatus = Record<string, { connected: boolean; updatedAt?: string }>;
 
@@ -21,7 +26,7 @@ export async function apiKeyStatus(
     select: { provider: true, updatedAt: true },
   });
   const status: ApiKeyStatus = Object.fromEntries(
-    API_KEY_PROVIDERS.map((provider) => [provider, { connected: false }])
+    allKeyProviders().map((provider) => [provider, { connected: false }])
   );
   for (const key of keys) {
     status[key.provider] = { connected: true, updatedAt: key.updatedAt.toISOString() };

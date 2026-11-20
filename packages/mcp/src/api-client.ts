@@ -1,12 +1,15 @@
 /*
- * The MCP server's only way to data: GET requests to a crawlseo instance's
- * read-only API (/api/v1) with an access key. It never connects to a database.
+ * The MCP server's only way to data: requests to a crawlseo instance's API
+ * (/api/v1) with an access key. Every tool sends GET, except push_positions
+ * (agency fork), which POSTs and needs a write-scoped key. It never connects
+ * to a database.
  */
 
 export type Query = Record<string, string | number | undefined>;
 
 export interface ApiClient {
   get<T>(path: string, query?: Query): Promise<T>;
+  post<T>(path: string, body: unknown): Promise<T>;
 }
 
 /** A request the instance refused or could not answer. The message is safe to show to the agent. */
@@ -32,35 +35,43 @@ export type ApiClientOptions = {
 export function createApiClient(opts: ApiClientOptions): ApiClient {
   const base = opts.baseUrl.replace(/\/+$/, "");
   const send = opts.fetch ?? ((req: Request) => fetch(req));
+  async function send_<T>(method: "GET" | "POST", url: URL, body?: unknown): Promise<T> {
+    let res: Response;
+    try {
+      res = await send(
+        new Request(url, {
+          method,
+          headers: {
+            Authorization: `Bearer ${opts.apiKey}`,
+            Accept: "application/json",
+            ...(body !== undefined && { "Content-Type": "application/json" }),
+            ...(opts.userAgent && { "User-Agent": opts.userAgent }),
+          },
+          ...(body !== undefined && { body: JSON.stringify(body) }),
+          signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
+        })
+      );
+    } catch (err) {
+      throw new ApiRequestError(0, `Could not reach crawlseo at ${base}: ${err instanceof Error ? err.message : String(err)}`);
+    }
+
+    const parsed = (await res.json().catch(() => null)) as (T & { error?: unknown }) | null;
+    if (!res.ok) {
+      const reason = typeof parsed?.error === "string" ? parsed.error : `HTTP ${res.status}`;
+      throw new ApiRequestError(res.status, explain(res.status, reason));
+    }
+    if (parsed === null) throw new ApiRequestError(res.status, `crawlseo at ${base} did not answer with JSON`);
+    return parsed;
+  }
+
   return {
-    async get<T>(path: string, query: Query = {}): Promise<T> {
+    get<T>(path: string, query: Query = {}): Promise<T> {
       const url = new URL(`${base}/api/v1${path}`);
       for (const [k, v] of Object.entries(query)) if (v !== undefined && v !== "") url.searchParams.set(k, String(v));
-
-      let res: Response;
-      try {
-        res = await send(
-          new Request(url, {
-            method: "GET",
-            headers: {
-              Authorization: `Bearer ${opts.apiKey}`,
-              Accept: "application/json",
-              ...(opts.userAgent && { "User-Agent": opts.userAgent }),
-            },
-            signal: AbortSignal.timeout(opts.timeoutMs ?? 30_000),
-          })
-        );
-      } catch (err) {
-        throw new ApiRequestError(0, `Could not reach crawlseo at ${base}: ${err instanceof Error ? err.message : String(err)}`);
-      }
-
-      const body = (await res.json().catch(() => null)) as (T & { error?: unknown }) | null;
-      if (!res.ok) {
-        const reason = typeof body?.error === "string" ? body.error : `HTTP ${res.status}`;
-        throw new ApiRequestError(res.status, explain(res.status, reason));
-      }
-      if (body === null) throw new ApiRequestError(res.status, `crawlseo at ${base} did not answer with JSON`);
-      return body;
+      return send_<T>("GET", url);
+    },
+    post<T>(path: string, body: unknown): Promise<T> {
+      return send_<T>("POST", new URL(`${base}/api/v1${path}`), body);
     },
   };
 }

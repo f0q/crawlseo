@@ -28,7 +28,11 @@ import {
 import { DisconnectGoogleDialog } from "@/components/account/account-actions";
 import { formatDay } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import type { ApiKeyProvider as KeyProvider, ApiKeyStatus } from "@/lib/api-keys";
+import type { ApiKeyStatus } from "@/lib/api-keys";
+import type { RankProviderMeta } from "@/lib/rank-providers/types";
+
+/** A provider id of ApiKey: the built-in ones and the rank providers of the agency fork. */
+type KeyProvider = string;
 
 // The key form stops at a reading width: the content area grows to 1600 px, and a key field as wide as that
 // is hard to scan. Labels, fields and messages share the cap; the buttons keep their own size.
@@ -84,18 +88,6 @@ const KEY_PROVIDERS: KeyProviderConfig[] = [
     testable: true,
     disconnectNote:
       "Every site loses its Bing property, and the Bing data synced for your sites is deleted.",
-  },
-  {
-    // Agency fork: positions from Labrika (lib/labrika).
-    provider: "labrika",
-    name: "Labrika",
-    description: "Keyword positions in Yandex by region and device, from your Labrika rank tracking projects.",
-    icon: TrendingUp,
-    fields: [{ name: "apiKey", label: "API key", type: "password" }],
-    help: "In Labrika open your profile, Public API, and create a key with the serp:read scope. Positions need a Business or Agency subscription.",
-    helpLink: { href: "https://labrika.ru/dashboard#/user/public-api", label: "Open Labrika Public API" },
-    testable: true,
-    disconnectNote: "Every site loses its Labrika search engines, and the positions synced from Labrika are deleted.",
   },
   {
     provider: "dataforseo",
@@ -168,6 +160,57 @@ export function ConnectionsSection({
           expanded={open === config.provider}
           onExpand={(expanded) => setOpen(expanded ? config.provider : null)}
           onStatusChange={markConnected}
+        />
+      ))}
+    </ul>
+  );
+}
+
+/**
+ * Agency fork: Settings > Rank tracking. One key row per rank provider of
+ * lib/rank-providers/registry.ts, with the same add, test and remove as the
+ * other connections. Removing a key unlinks that provider's engines.
+ */
+export function RankTrackingSection({
+  providers,
+  initialStatus,
+  initialOpen = null,
+}: {
+  providers: RankProviderMeta[];
+  initialStatus: ApiKeyStatus;
+  initialOpen?: string | null;
+}) {
+  const [status, setStatus] = useState<ApiKeyStatus>(initialStatus);
+  const [open, setOpen] = useState<string | null>(
+    initialOpen && !initialStatus[initialOpen]?.connected ? initialOpen : null
+  );
+  const configs: KeyProviderConfig[] = providers.map((p) => ({
+    provider: p.id,
+    name: p.name,
+    description: p.description,
+    icon: TrendingUp,
+    fields: [{ name: "apiKey", label: "API key", type: "password" }],
+    help: p.help,
+    helpLink: p.helpLink,
+    testable: true,
+    disconnectNote: `Every site loses its ${p.name} search engines, and the positions synced from ${p.name} are deleted. Imported and pushed positions stay.`,
+  }));
+
+  return (
+    <ul className="panel divide-y divide-border-soft">
+      {configs.map((config) => (
+        <KeyRow
+          key={config.provider}
+          config={config}
+          status={status[config.provider]}
+          expanded={open === config.provider}
+          onExpand={(expanded) => setOpen(expanded ? config.provider : null)}
+          onStatusChange={(provider, connected) =>
+            setStatus((prev) => ({
+              ...prev,
+              [provider]: connected ? { connected: true, updatedAt: new Date().toISOString() } : { connected: false },
+            }))
+          }
         />
       ))}
     </ul>

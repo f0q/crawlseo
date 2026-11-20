@@ -7,7 +7,7 @@
     "searchconsole.googleapis.com": "Search Console URL Inspection (index status)",
     "ssl.bing.com": "Bing Webmaster Tools API, only with the user's own key",
     "api.dataforseo.com": "DataForSEO API, only with the user's own key",
-    "labrika.ru": "Labrika Public API (agency fork), only with the user's own key; also the help link in Settings > Connections",
+    "labrika.ru": "Labrika Public API (agency fork rank provider, lib/rank-providers/labrika), only with the user's own key; also the help link in Settings > Rank tracking",
     "suggestqueries.google.com": "Google autocomplete keyword suggestions",
     "api.github.com": "Daily update check (CRAWLSEO_UPDATE_CHECK=false turns it off)"
   },

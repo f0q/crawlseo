@@ -1,10 +1,11 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { encrypt } from "@/lib/encryption";
-import { API_KEY_PROVIDERS, apiKeyStatus, type ApiKeyProvider } from "@/lib/api-keys";
+import { allKeyProviders, apiKeyStatus } from "@/lib/api-keys";
+import { isRankProviderId } from "@/lib/rank-providers/registry";
 
-function isSupportedProvider(value: unknown): value is ApiKeyProvider {
-  return typeof value === "string" && API_KEY_PROVIDERS.includes(value as ApiKeyProvider);
+function isSupportedProvider(value: unknown): value is string {
+  return typeof value === "string" && allKeyProviders().includes(value);
 }
 
 export async function GET() {
@@ -40,7 +41,7 @@ export async function POST(req: Request) {
     }
 
     // dataforseo: login + password (Basic Auth style credentials).
-    // google_pagespeed, bing, labrika: a single key string - no login concept.
+    // google_pagespeed, bing and the rank providers: a single key string - no login concept.
     let encryptedLogin: string | null;
     let encryptedPassword: string;
 
@@ -124,11 +125,12 @@ export async function DELETE(req: Request) {
         db.bingDaily.deleteMany({ where: { site: { userId } } }),
         deleteKey,
       ]);
-    } else if (body.provider === "labrika") {
-      // Like Bing: another key may not see these projects, so the links and
-      // the positions synced through them go with the key.
+    } else if (isRankProviderId(body.provider)) {
+      // Like Bing: another key may not see these projects, so the provider's
+      // engines and the positions synced through them go with the key.
+      // Imported and pushed positions stay.
       await db.$transaction([
-        db.externalRankEngine.deleteMany({ where: { source: "labrika", site: { userId } } }),
+        db.externalRankEngine.deleteMany({ where: { source: body.provider, site: { userId } } }),
         deleteKey,
       ]);
     } else {

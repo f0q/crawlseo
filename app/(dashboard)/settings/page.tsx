@@ -2,11 +2,12 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { isSealed } from "@/lib/google/token-store";
-import { API_KEY_PROVIDERS, apiKeyStatus } from "@/lib/api-keys";
+import { allKeyProviders, apiKeyStatus } from "@/lib/api-keys";
+import { rankProviderMetas } from "@/lib/rank-providers/registry";
 import { PageHeader } from "@/components/ui/page-header";
 import { Avatar } from "@/components/account/avatar";
 import { DeleteAccountDialog, SignOutButton } from "@/components/account/account-actions";
-import { ConnectionsSection } from "@/components/settings/connections-section";
+import { ConnectionsSection, RankTrackingSection } from "@/components/settings/connections-section";
 import { ScheduleSection } from "@/components/settings/schedule-section";
 import { McpSection } from "@/components/settings/mcp-section";
 import { WebhookSection } from "@/components/settings/webhook-section";
@@ -69,7 +70,7 @@ export default async function SettingsPage({ searchParams }: Props) {
 
   // ?connect=bing opens that row's form, for the "Connect Bing in Settings" links.
   const { connect } = await searchParams;
-  const initialOpen = API_KEY_PROVIDERS.find((p) => p === connect) ?? null;
+  const initialOpen = allKeyProviders().find((p) => p === connect) ?? null;
 
   return (
     <div>
@@ -118,6 +119,16 @@ export default async function SettingsPage({ searchParams }: Props) {
           />
         </section>
 
+        {/* Agency fork: rank providers (lib/rank-providers). */}
+        <section id="rank-tracking" aria-labelledby="rank-tracking-heading" className="scroll-mt-6">
+          <SectionHeading
+            id="rank-tracking-heading"
+            title="Rank tracking"
+            description="Rank trackers that check your keyword positions. Link their search engines to a site in Site settings; CSV imports and the write API need no key here."
+          />
+          <RankTrackingSection providers={rankProviderMetas()} initialStatus={keys} initialOpen={initialOpen} />
+        </section>
+
         <section id="schedule" aria-labelledby="schedule-heading" className="scroll-mt-6">
           <SectionHeading
             id="schedule-heading"
@@ -149,7 +160,7 @@ export default async function SettingsPage({ searchParams }: Props) {
           <SectionHeading
             id="mcp-heading"
             title="MCP"
-            description="Read-only access to your sites for AI agents such as Claude Code, with access keys you create here."
+            description="Access to your sites for AI agents such as Claude Code, with access keys you create here: read-only, or able to push keyword positions too."
           />
           <McpSection initial={mcp} endpoint={mcpEndpoint} />
         </section>

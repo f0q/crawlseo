@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { listAccessKeys } from "@/lib/access-keys";
+import { listAccessKeys, type KeyScope } from "@/lib/access-keys";
 
 /*
  * Settings > MCP: whether the user's access keys work (off by default) and
@@ -8,7 +8,7 @@ import { listAccessKeys } from "@/lib/access-keys";
 
 type Db = Pick<PrismaClient, "userSettings" | "accessKey">;
 
-export type McpKeyView = { id: string; name: string; prefix: string; createdAt: string; lastUsedAt: string | null };
+export type McpKeyView = { id: string; name: string; prefix: string; scope: KeyScope; createdAt: string; lastUsedAt: string | null };
 export type McpStatus = { enabled: boolean; keys: McpKeyView[] };
 
 export async function mcpStatus(db: Db, userId: string): Promise<McpStatus> {

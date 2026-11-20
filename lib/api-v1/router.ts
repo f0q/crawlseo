@@ -2,14 +2,15 @@ import type { KeyOwner } from "@/lib/access-keys";
 import { apiRateLimitPerMinute, RateLimiter } from "@/lib/rate-limit";
 import { checkKey } from "./auth";
 import * as read from "./handlers";
-import { labrikaEngines, labrikaPositions } from "@/lib/labrika/api-v1";
+import { MAX_PUSH_BYTES, positions, pushPositions, rankEngines } from "@/lib/rank-providers/api-v1";
 import { ApiError } from "./params";
 
 /*
- * The read-only API under /api/v1, for the MCP server and scripts. Every
- * request carries an access key (Authorization: Bearer <key>) of a user with
- * MCP turned on in Settings > MCP, and reads the data of that user only. GET is the only method: nothing here writes,
- * queues or triggers anything.
+ * The API under /api/v1, for the MCP server and scripts. Every request
+ * carries an access key (Authorization: Bearer <key>) of a user with MCP
+ * turned on in Settings > MCP, and reads the data of that user only. Every
+ * route is GET and writes, queues or triggers nothing, except one write
+ * (agency fork): POST .../positions, only with a key of the "write" scope.
  *
  * GET /api/v1/key                                  the key in use: name and prefix
  * GET /api/v1/sites
@@ -25,8 +26,9 @@ import { ApiError } from "./params";
  * GET /api/v1/sites/{siteId}/bing/keywords         Bing weekly queries summed over the period, &limit=
  * GET /api/v1/sites/{siteId}/bing/pages            the same for pages
  * GET /api/v1/sites/{siteId}/saved-keywords       saved keywords with their totals, ?days= or ?startDate=&endDate=
- * GET /api/v1/sites/{siteId}/labrika/engines      agency fork: linked Labrika engines (lib/labrika/api-v1.ts)
- * GET /api/v1/sites/{siteId}/labrika/positions    Labrika positions of an engine, ?engine=&date=&limit=&checks=
+ * GET /api/v1/sites/{siteId}/rank-engines         agency fork: rank engines of every source, ?source= (lib/rank-providers/api-v1.ts)
+ * GET /api/v1/sites/{siteId}/positions            positions of an engine, ?engine=&source=&date=&from=&to=&limit=&checks=
+ * POST /api/v1/sites/{siteId}/positions           write-scoped key: a batch of rows of one source and engine
  */
 
 const PREFIX = "/api/v1/";
@@ -48,6 +50,19 @@ export function countKeyRequest(keyId: string): RateCheck {
   if (!rate.ok) headers["Retry-After"] = String(rate.retryAfterS);
   return { ok: rate.ok, headers };
 }
+
+/** Writes per minute per key, on top of the shared count: each one can carry thousands of rows. */
+export const WRITES_PER_MINUTE = 20;
+const writes = globalThis as unknown as { crawlseoApiWriteLimiter?: RateLimiter };
+
+function countWrite(keyId: string): RateCheck {
+  writes.crawlseoApiWriteLimiter ??= new RateLimiter(WRITES_PER_MINUTE);
+  const rate = writes.crawlseoApiWriteLimiter.hit(keyId);
+  return rate.ok ? { ok: true, headers: {} } : { ok: false, headers: { "Retry-After": String(rate.retryAfterS) } };
+}
+
+export const READ_ONLY_KEY_MESSAGE =
+  "This key is read-only. Create a key with the write scope in Settings > MCP to push positions.";
 
 export const RATE_LIMITED_MESSAGE = "Too many requests for this key. Try again shortly.";
 
@@ -88,6 +103,10 @@ async function route(owner: KeyOwner, segments: string[], params: URLSearchParam
         return read.opportunities(site);
       case "saved-keywords":
         return read.savedKeywords(site, params);
+      case "rank-engines":
+        return rankEngines(site, params);
+      case "positions":
+        return positions(site, params);
     }
   }
   if (segments.length === 4 && resource === "bing") {
@@ -100,24 +119,42 @@ async function route(owner: KeyOwner, segments: string[], params: URLSearchParam
         return read.bingPages(site, params);
     }
   }
-  if (segments.length === 4 && resource === "labrika") {
-    switch (segments[3]) {
-      case "engines":
-        return labrikaEngines(site);
-      case "positions":
-        return labrikaPositions(site, params);
-    }
-  }
   if (segments.length === 5 && resource === "crawls" && sub === "issues") {
     return read.crawlIssues(site, crawlId, params);
   }
   throw new ApiError(404, "Not found");
 }
 
+/** The one write route: POST /api/v1/sites/{siteId}/positions. */
+const isWritePath = (segments: string[]) => segments.length === 3 && segments[0] === "sites" && segments[2] === "positions";
+
+async function readBody(req: Request): Promise<unknown> {
+  const declared = Number(req.headers.get("content-length"));
+  if (Number.isFinite(declared) && declared > MAX_PUSH_BYTES) throw new ApiError(413, `The body is over ${MAX_PUSH_BYTES} bytes`);
+  const text = await req.text();
+  if (text.length > MAX_PUSH_BYTES) throw new ApiError(413, `The body is over ${MAX_PUSH_BYTES} bytes`);
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new ApiError(400, "The body must be JSON");
+  }
+}
+
+async function write(owner: KeyOwner, segments: string[], req: Request): Promise<unknown> {
+  const site = await read.ownSite(owner.userId, segments[1]);
+  return pushPositions(site, await readBody(req));
+}
+
 /** Answers one /api/v1 request. Used by the route and, in-process, by the instance's MCP endpoint. */
 export async function handleApiV1(req: Request, opts: { countRequest?: boolean } = {}): Promise<Response> {
-  if (req.method !== "GET") {
-    return json({ error: "The API is read-only: GET only" }, 405, { Allow: "GET" });
+  const url = new URL(req.url);
+  const path = url.pathname.startsWith(PREFIX) ? url.pathname.slice(PREFIX.length) : "";
+  const rawSegments = path.split("/").filter(Boolean);
+  const writing = req.method === "POST" && isWritePath(rawSegments);
+  if (req.method !== "GET" && !writing) {
+    return json({ error: "Only GET, and POST to /sites/{siteId}/positions" }, 405, {
+      Allow: isWritePath(rawSegments) ? "GET, POST" : "GET",
+    });
   }
 
   try {
@@ -130,9 +167,13 @@ export async function handleApiV1(req: Request, opts: { countRequest?: boolean }
     const rateHeaders = rate.headers;
     if (!rate.ok) return json({ error: RATE_LIMITED_MESSAGE }, 429, rateHeaders);
 
-    const url = new URL(req.url);
-    const path = url.pathname.startsWith(PREFIX) ? url.pathname.slice(PREFIX.length) : "";
-    const segments = path.split("/").filter(Boolean).map(segment);
+    const segments = rawSegments.map(segment);
+    if (writing) {
+      if (owner.scope !== "write") return json({ error: READ_ONLY_KEY_MESSAGE }, 403, rateHeaders);
+      const w = countWrite(owner.keyId);
+      if (!w.ok) return json({ error: RATE_LIMITED_MESSAGE }, 429, { ...rateHeaders, ...w.headers });
+      return json(await write(owner, segments, req), 200, rateHeaders);
+    }
     return json(await route(owner, segments, url.searchParams), 200, rateHeaders);
   } catch (err) {
     if (err instanceof ApiError) return json({ error: err.message }, err.status);

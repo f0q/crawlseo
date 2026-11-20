@@ -97,6 +97,26 @@ describe("read-only", () => {
         expect(res.headers.get("allow")).toBe("GET");
       }
     }
+    // Agency fork: positions take POST too, and only with a write-scoped key.
+    for (const method of ["PUT", "PATCH", "DELETE"]) {
+      const res = await get("/sites/site-a/positions", f.keyAWrite, method);
+      expect(res.status, method).toBe(405);
+      expect(res.headers.get("allow")).toBe("GET, POST");
+    }
+  });
+
+  it("a read-only key cannot POST positions, and nothing changes", async () => {
+    const before = await snapshotUserData(db);
+    const res = await handleApiV1(
+      new Request("http://localhost/api/v1/sites/site-a/positions", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${f.keyA}`, "Content-Type": "application/json" },
+        body: JSON.stringify({ source: "x-parser", engine: "Yandex", rows: [{ keyword: "k", date: "2026-11-01", position: 1 }] }),
+      })
+    );
+    expect(res.status).toBe(403);
+    expect((await body(res)).error).toMatch(/read-only/);
+    expect(await snapshotUserData(db)).toBe(before);
   });
 
   it("no endpoint changes any data, a stale crawl included", async () => {
@@ -116,8 +136,9 @@ describe("read-only", () => {
       "/sites/site-a/bing/traffic",
       "/sites/site-a/bing/keywords",
       "/sites/site-a/bing/pages",
-      "/sites/site-a/labrika/engines",
-      "/sites/site-a/labrika/positions",
+      "/sites/site-a/rank-engines",
+      "/sites/site-a/positions",
+      "/sites/site-a/positions?source=import",
     ]) {
       expect((await get(path)).status, path).toBe(200);
     }
@@ -148,8 +169,8 @@ describe("user isolation", () => {
       "/sites/site-b/bing/traffic",
       "/sites/site-b/bing/keywords",
       "/sites/site-b/bing/pages",
-      "/sites/site-b/labrika/engines",
-      "/sites/site-b/labrika/positions",
+      "/sites/site-b/rank-engines",
+      "/sites/site-b/positions",
     ]) {
       const res = await get(path);
       expect(res.status, path).toBe(404);

@@ -16,7 +16,7 @@ export function daysAgo(n: number): Date {
   return d;
 }
 
-export type Fixtures = { keyA: string; keyB: string; keyAId: string; keyOff: string };
+export type Fixtures = { keyA: string; keyB: string; keyAId: string; keyOff: string; keyAWrite: string; keyBWrite: string };
 
 export async function seedApiFixtures(db: PrismaClient): Promise<Fixtures> {
   await db.user.create({ data: { id: "user-a", email: "a@quilltab.app" } });
@@ -58,8 +58,9 @@ export async function seedApiFixtures(db: PrismaClient): Promise<Fixtures> {
     ],
   });
 
-  // Labrika (agency fork): two checks of one engine on site A, one of them
-  // not ranked on the latest check and one new to it; an engine on site B.
+  // Rank tracking (agency fork): two Labrika checks of one engine on site A,
+  // one keyword not ranked on the latest check and one new to it; an engine
+  // on site B; and a CSV import of the same search engine and region on site A.
   await db.externalRankEngine.createMany({
     data: [
       { id: "eng-a", siteId: "site-a", source: "labrika", externalSiteId: "uuid-a", externalEngineId: "101", host: "quilltab.app", engine: "Yandex", region: "Moscow (desktop)", device: "desktop" },
@@ -74,6 +75,16 @@ export async function seedApiFixtures(db: PrismaClient): Promise<Fixtures> {
       { engineId: "eng-a", keyword: "notes app", date: daysAgo(1), position: null, url: null, frequency: 900, frequencyExact: 70 },
       { engineId: "eng-a", keyword: "markdown notes", date: daysAgo(1), position: 25, url: "https://quilltab.app/md", frequency: null, frequencyExact: null },
       { engineId: "eng-b", keyword: "secret b keyword", date: daysAgo(1), position: 1, url: "https://secret-b.com/private", frequency: 1, frequencyExact: 1 },
+    ],
+  });
+
+  await db.externalRankEngine.create({
+    data: { id: "eng-a-csv", siteId: "site-a", source: "import", externalSiteId: "csv", externalEngineId: "yandex|moscow|desktop", label: "csv", host: "quilltab.app", engine: "Yandex", region: "Moscow", device: "desktop", createdAt: new Date(Date.now() + 1000) },
+  });
+  await db.externalRank.createMany({
+    data: [
+      { engineId: "eng-a-csv", keyword: "quilltab app", date: daysAgo(1), position: 4, url: "https://quilltab.app/" },
+      { engineId: "eng-a-csv", keyword: "notes app", date: daysAgo(1), position: 9, url: "https://quilltab.app/notes" },
     ],
   });
 
@@ -115,7 +126,10 @@ export async function seedApiFixtures(db: PrismaClient): Promise<Fixtures> {
   const a = await createAccessKey(db, "user-a", "laptop");
   const b = await createAccessKey(db, "user-b", "laptop");
   const off = await createAccessKey(db, "user-off", "laptop");
-  return { keyA: a.key, keyB: b.key, keyAId: a.id, keyOff: off.key };
+  // Agency fork: write-scoped keys, for POST .../positions and push_positions.
+  const aw = await createAccessKey(db, "user-a", "parser", "write");
+  const bw = await createAccessKey(db, "user-b", "parser", "write");
+  return { keyA: a.key, keyB: b.key, keyAId: a.id, keyOff: off.key, keyAWrite: aw.key, keyBWrite: bw.key };
 }
 
 /** Every row of every table the API reads, to prove a request changed nothing. */

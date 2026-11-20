@@ -6,8 +6,9 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
 // The MCP tools end to end against the real /api/v1 handler on PGlite: every
-// tool reads through the API with the key, sees the key owner's data only,
-// sends GET requests only and changes nothing.
+// read tool reads through the API with the key, sees the key owner's data
+// only, sends GET requests only and changes nothing. The one write tool
+// (agency fork, push_positions) works only with a write-scoped key.
 
 const holder = vi.hoisted(() => ({ db: null as PrismaClient | null }));
 vi.mock("@/lib/db", async () => {
@@ -19,7 +20,7 @@ import { handleApiV1 } from "@/lib/api-v1/router";
 import { seedApiFixtures, snapshotUserData, type Fixtures } from "@/lib/testing/api-fixtures";
 import { createTestDb, type TestDb } from "@/lib/testing/pglite";
 import { createApiClient } from "./api-client";
-import { createMcpServer, TOOL_NAMES } from "./tools";
+import { createMcpServer, TOOL_NAMES, WRITE_TOOL_NAMES } from "./tools";
 
 let t: TestDb;
 let db: PrismaClient;
@@ -72,16 +73,20 @@ const CALLS: [string, Record<string, unknown>, RegExp][] = [
   ["get_bing_traffic", { siteId: "site-a", days: 12 }, /Total: 20 clicks, 200 impressions, 53 pages crawled[\s\S]*\| -/],
   ["get_bing_keywords", { siteId: "site-a" }, /quilltab bing\s+\| 6\s+\| 400\s+\| 5\.0\s+\| 2/],
   ["get_bing_pages", { siteId: "site-a" }, /https:\/\/quilltab\.app\/\s+\| 3/],
-  ["get_labrika_positions", { siteId: "site-a" }, /Top 3: 1 \(\+1\)[\s\S]*not ranked: 1 \(\+1\)[\s\S]*quilltab app\s+\| 300\s+\| 2\s+\| \+3[\s\S]*notes app\s+\| 900\s+\| -\s+\| lost/],
+  ["get_positions", { siteId: "site-a" }, /source Labrika[\s\S]*\[CSV import\][\s\S]*Top 3: 1 \(\+1\)[\s\S]*not ranked: 1 \(\+1\)[\s\S]*quilltab app\s+\| 300\s+\| 2\s+\| \+3[\s\S]*notes app\s+\| 900\s+\| -\s+\| lost/],
+  ["get_positions", { siteId: "site-a", source: "import" }, /source CSV import[\s\S]*quilltab app\s+\| -\s+\| 4/],
   ["get_saved_keywords", { siteId: "site-a" }, /2 saved keywords[\s\S]*1 had no Search Console data[\s\S]*never seen query\s+\| -[\s\S]*launch target[\s\S]*quilltab notes\s+\| \d/],
 ];
 
 describe("MCP tools", () => {
-  it("lists exactly the read-only tools, each marked read-only", async () => {
+  it("lists the read-only tools, each marked read-only, and the one write tool marked as such", async () => {
     const client = await connect(f.keyA);
     const { tools } = await client.listTools();
-    expect(tools.map((t) => t.name).sort()).toEqual([...TOOL_NAMES].sort());
-    for (const tool of tools) {
+    expect(tools.map((t) => t.name).sort()).toEqual([...TOOL_NAMES, ...WRITE_TOOL_NAMES].sort());
+    for (const tool of tools.filter((t) => (WRITE_TOOL_NAMES as readonly string[]).includes(t.name))) {
+      expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: false, destructiveHint: false, idempotentHint: true });
+    }
+    for (const tool of tools.filter((t) => (TOOL_NAMES as readonly string[]).includes(t.name))) {
       expect(tool.annotations, tool.name).toMatchObject({ readOnlyHint: true, destructiveHint: false });
       expect(tool.name).not.toMatch(/run|start|sync|create|update|delete|set|add|remove/);
     }
@@ -116,6 +121,47 @@ describe("MCP tools", () => {
     }
     const other = await call(client, "get_crawl_issues", { siteId: "site-a", crawlId: "crawl-b1" });
     expect(other).toEqual({ isError: true, text: "Crawl not found" });
+    await client.close();
+  });
+
+  it("push_positions is refused with a read-only key and changes nothing", async () => {
+    const client = await connect(f.keyA);
+    const before = await snapshotUserData(db);
+    const res = await call(client, "push_positions", {
+      siteId: "site-a",
+      source: "mcp-parser",
+      engine: "Yandex",
+      rows: [{ keyword: "quilltab app", date: "2026-11-01", position: 1 }],
+    });
+    expect(res.isError).toBe(true);
+    expect(res.text).toMatch(/read-only/);
+    expect(await snapshotUserData(db)).toBe(before);
+    await client.close();
+  });
+
+  it("push_positions writes with a write-scoped key, POSTs once, and get_positions reads it back", async () => {
+    const client = await connect(f.keyAWrite);
+    methods.length = 0;
+    const day = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10);
+    const args = {
+      siteId: "site-a",
+      source: "mcp-parser",
+      engine: "Yandex",
+      region: "Moscow",
+      rows: [
+        { keyword: "quilltab app", date: day, position: 1, url: "https://quilltab.app/" },
+        { keyword: "notes app", date: day, position: null },
+      ],
+    };
+    const res = await call(client, "push_positions", args);
+    expect(res.isError, res.text).toBe(false);
+    expect(res.text).toMatch(/Stored 2 position\(s\) for \d{4}-\d{2}-\d{2} under source mcp-parser[\s\S]*\(new engine\)/);
+    expect(methods).toEqual(["POST"]);
+    // The same call again replaces the same rows.
+    expect((await call(client, "push_positions", args)).text).not.toMatch(/new engine/);
+    const read = await call(client, "get_positions", { siteId: "site-a", source: "mcp-parser" });
+    expect(read.text).toMatch(/source mcp-parser[\s\S]*quilltab app\s+\| -\s+\| 1/);
+    expect(await db.externalRankEngine.count({ where: { source: "mcp-parser" } })).toBe(1);
     await client.close();
   });
 

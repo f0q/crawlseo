@@ -52,7 +52,7 @@ export function SidebarNav({
           { href: `/sites/${activeSiteId}`, label: "Overview", icon: LayoutDashboard, exact: true },
           { href: `/sites/${activeSiteId}/keywords`, label: "Keywords", icon: Search },
           { href: `/sites/${activeSiteId}/saved-keywords`, label: "Saved keywords", icon: Bookmark },
-          // Agency fork: Labrika positions (lib/labrika).
+          // Agency fork: rank tracking positions (lib/rank-providers).
           { href: `/sites/${activeSiteId}/positions`, label: "Positions", icon: TrendingUp },
           { href: `/sites/${activeSiteId}/pages`, label: "Pages", icon: FileText },
           { href: `/sites/${activeSiteId}/crawl`, label: "Crawl / Audit", icon: Bug },

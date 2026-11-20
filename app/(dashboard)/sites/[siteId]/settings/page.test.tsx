@@ -7,7 +7,7 @@ const { auth, db, redirect } = vi.hoisted(() => ({
   auth: vi.fn(),
   db: {
     site: { findUnique: vi.fn() },
-    apiKey: { findUnique: vi.fn(), findMany: vi.fn() },
+    apiKey: { findUnique: vi.fn(), findMany: vi.fn(async () => []) },
     externalRankEngine: { findMany: vi.fn(async () => []) },
   },
   redirect: vi.fn((url: string) => {

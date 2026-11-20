@@ -4,6 +4,7 @@ import { useId, useState } from "react";
 import { Bot, Check, CheckCircle2, Copy, KeyRound, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
+import type { KeyScope } from "@/lib/access-keys";
 import type { McpKeyView, McpStatus } from "@/lib/mcp-settings";
 
 const INPUT_CLASS =
@@ -29,6 +30,19 @@ function CopyButton({ text, label }: { text: string; label: string }) {
   );
 }
 
+/** The key's scope: read-only, or read and write positions (agency fork). */
+function ScopeBadge({ scope }: { scope: KeyScope }) {
+  return scope === "write" ? (
+    <span className="mono-label inline-flex shrink-0 items-center rounded-md border border-warning/40 bg-warning-bg px-1.5 py-0 text-[10px] leading-4 text-warning">
+      read + write positions
+    </span>
+  ) : (
+    <span className="mono-label inline-flex shrink-0 items-center rounded-md border border-border px-1.5 py-0 text-[10px] leading-4 text-muted-foreground">
+      read-only
+    </span>
+  );
+}
+
 function OnOffBadge({ on }: { on: boolean }) {
   return on ? (
     <span className="mono-label inline-flex shrink-0 items-center rounded-md border border-success/30 bg-success-bg px-2 py-0.5 text-[11px] leading-4 text-success">
@@ -50,6 +64,7 @@ export function McpSection({ initial, endpoint }: { initial: McpStatus; endpoint
   const id = useId();
   const [status, setStatus] = useState(initial);
   const [name, setName] = useState("");
+  const [scope, setScope] = useState<KeyScope>("read");
   const [created, setCreated] = useState<{ id: string; name: string; key: string } | null>(null);
   const [confirming, setConfirming] = useState<string | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
@@ -82,12 +97,13 @@ export function McpSection({ initial, endpoint }: { initial: McpStatus; endpoint
     e.preventDefault();
     setBusy("create");
     setCreated(null);
-    const data = await request("/api/user/mcp/keys", { method: "POST", body: JSON.stringify({ name }) });
+    const data = await request("/api/user/mcp/keys", { method: "POST", body: JSON.stringify({ name, scope }) });
     if (data) {
       const { key, ...view } = data as unknown as McpKeyView & { key: string };
       setStatus((s) => ({ ...s, keys: [view, ...s.keys] }));
       setCreated({ id: view.id, name: view.name, key });
       setName("");
+      setScope("read");
     }
     setBusy(null);
   }
@@ -121,8 +137,10 @@ export function McpSection({ initial, endpoint }: { initial: McpStatus; endpoint
             <p className="mt-1 text-[13px] leading-5 text-muted-foreground">
               Lets an AI agent read your sites&apos; data with one of the keys below, at{" "}
               <code className="font-data break-all text-text">{endpoint}</code> or through the{" "}
-              <code className="font-data">@crawlseo/mcp</code> package. Read-only: no tool changes anything or starts a
-              crawl or sync. While MCP is off, every key is refused.
+              <code className="font-data">@crawlseo/mcp</code> package. A key is read-only: no tool changes anything or
+              starts a crawl or sync. A key with the write scope can also push keyword positions (POST
+              /api/v1/sites/&#123;id&#125;/positions and the push_positions tool), nothing else. While MCP is off, every key is
+              refused.
             </p>
           </div>
         </div>
@@ -161,6 +179,31 @@ export function McpSection({ initial, endpoint }: { initial: McpStatus; endpoint
               Create key
             </Button>
           </div>
+          <fieldset className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[13px] text-foreground">
+            <legend className="sr-only">Key scope</legend>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name="scope"
+                value="read"
+                checked={scope === "read"}
+                onChange={() => setScope("read")}
+                className="accent-brand-500"
+              />
+              Read-only
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name="scope"
+                value="write"
+                checked={scope === "write"}
+                onChange={() => setScope("write")}
+                className="accent-brand-500"
+              />
+              Read and write positions
+            </label>
+          </fieldset>
         </form>
 
         {created && (
@@ -202,7 +245,10 @@ export function McpSection({ initial, endpoint }: { initial: McpStatus; endpoint
             {status.keys.map((k) => (
               <li key={k.id} className="flex flex-col gap-2 px-3 py-2.5 sm:flex-row sm:items-center sm:justify-between">
                 <div className="min-w-0">
-                  <p className="truncate text-sm font-medium text-text-strong">{k.name}</p>
+                  <p className="flex min-w-0 items-center gap-2 text-sm font-medium text-text-strong">
+                    <span className="truncate">{k.name}</span>
+                    <ScopeBadge scope={k.scope ?? "read"} />
+                  </p>
                   <p className="text-xs text-muted-foreground">
                     <code className="font-data">{k.prefix}…</code> · created {formatDay(k.createdAt, { year: true })} ·{" "}
                     {k.lastUsedAt ? `last used ${formatDay(k.lastUsedAt, { year: true, time: true })}` : "never used"}

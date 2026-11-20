@@ -4,20 +4,31 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { formatDay } from "@/lib/format";
-import { linkedEngines } from "@/lib/labrika/links";
-import { LABRIKA_UI } from "@/lib/labrika/messages";
-import { positionsReport, type Buckets } from "@/lib/labrika/report";
+import { linkedEngines, type LinkedEngine } from "@/lib/rank-providers/links";
+import { RANK_UI } from "@/lib/rank-providers/messages";
+import { comparisonRows, positionsReport, type Buckets } from "@/lib/rank-providers/report";
 import { PageHeader } from "@/components/ui/page-header";
 import { EmptyState } from "@/components/ui/empty-state";
-import { PositionsTable } from "@/components/labrika/positions-table";
-import { PositionsTrendChart } from "@/components/labrika/positions-trend-chart";
+import { PositionsTable, type PositionsComparison } from "@/components/rank-tracking/positions-table";
+import { PositionsTrendChart } from "@/components/rank-tracking/positions-trend-chart";
 
-const T = LABRIKA_UI;
+const T = RANK_UI;
 
 interface Props {
   params: Promise<{ siteId: string }>;
-  searchParams: Promise<{ engine?: string | string[] }>;
+  searchParams: Promise<{ engine?: string | string[]; compare?: string | string[] }>;
 }
+
+/** The engine's source, as a small badge next to its name. */
+function SourceBadge({ engine }: { engine: LinkedEngine }) {
+  return (
+    <span className="mono-label ml-1.5 rounded border border-border px-1 py-0 text-[10px] leading-4 text-muted-foreground">
+      {engine.userLabel ? `${engine.sourceName}: ${engine.userLabel}` : engine.sourceName}
+    </span>
+  );
+}
+
+const sourceTitle = (e: LinkedEngine) => (e.userLabel ? `${e.sourceName}: ${e.userLabel}` : e.sourceName);
 
 /** A bucket card: the count on the check and its change since the previous one. */
 function BucketCard({
@@ -75,9 +86,27 @@ export default async function PositionsPage({ params, searchParams }: Props) {
     );
   }
 
-  const requested = [(await searchParams).engine].flat()[0];
+  const query = await searchParams;
+  const requested = [query.engine].flat()[0];
   const engine = engines.find((e) => e.id === requested) ?? engines[0];
   const report = await positionsReport(db, engine.id);
+
+  // Another source of the same search engine, region and device: shown side by side, the first one by default.
+  const candidates = engines.filter((e) => e.id !== engine.id && e.matchKey === engine.matchKey);
+  const wantedCompare = [query.compare].flat()[0];
+  const compareEngine =
+    wantedCompare === "none" ? undefined : (candidates.find((e) => e.id === wantedCompare) ?? candidates[0]);
+  let comparison: PositionsComparison | undefined;
+  let comparisonMeta: string | undefined;
+  if (compareEngine && report.date) {
+    const other = await comparisonRows(db, compareEngine.id, report.date);
+    if (other.date) {
+      comparison = { source: sourceTitle(compareEngine), byKeyword: Object.fromEntries(other.byKeyword) };
+      comparisonMeta = T.page.comparisonOf(sourceTitle(compareEngine), formatDay(other.date, { year: true }));
+    }
+  }
+  const href = (engineId: string, compare?: string) =>
+    `/sites/${siteId}/positions?engine=${encodeURIComponent(engineId)}${compare ? `&compare=${encodeURIComponent(compare)}` : ""}`;
   const { current, previous } = report.summary;
   const prev = (key: keyof Buckets) => (previous ? previous[key] : null);
 
@@ -86,6 +115,7 @@ export default async function PositionsPage({ params, searchParams }: Props) {
         T.page.checkOf(formatDay(report.date, { year: true })),
         report.previousDate ? T.page.comparedTo(formatDay(report.previousDate, { year: true })) : T.page.noPrevious,
         ...(engine.lastSyncedAt ? [T.page.lastSynced(formatDay(engine.lastSyncedAt, { time: true }))] : []),
+        ...(comparisonMeta ? [comparisonMeta] : []),
       ].join(" · ")
     : undefined;
 
@@ -93,12 +123,12 @@ export default async function PositionsPage({ params, searchParams }: Props) {
     <div>
       <PageHeader title={T.page.title} meta={meta} description={T.page.description} />
 
-      {engines.length > 1 && (
+      {engines.length > 0 && (
         <nav aria-label={T.page.engine} className="mb-5 flex flex-wrap gap-2">
           {engines.map((e) => (
             <Link
               key={e.id}
-              href={`/sites/${siteId}/positions?engine=${encodeURIComponent(e.id)}`}
+              href={href(e.id)}
               aria-current={e.id === engine.id ? "page" : undefined}
               className={cn(
                 "rounded-md border px-3 py-1.5 text-[13px] transition-colors",
@@ -108,8 +138,33 @@ export default async function PositionsPage({ params, searchParams }: Props) {
               )}
             >
               {e.label}
+              <SourceBadge engine={e} />
             </Link>
           ))}
+        </nav>
+      )}
+
+      {candidates.length > 0 && (
+        <nav aria-label={T.page.compare} className="mb-5 flex flex-wrap items-center gap-2 text-[13px]">
+          <span className="text-muted-foreground" title={T.page.compareHint}>
+            {T.page.compare}:
+          </span>
+          {[...candidates.map((c) => ({ id: c.id, title: sourceTitle(c) })), { id: "none", title: T.page.compareNone }].map((c) => {
+            const active = c.id === "none" ? !compareEngine : compareEngine?.id === c.id;
+            return (
+              <Link
+                key={c.id}
+                href={href(engine.id, c.id)}
+                aria-current={active ? "page" : undefined}
+                className={cn(
+                  "rounded-md border px-2.5 py-1 transition-colors",
+                  active ? "border-brand-500 bg-bg-soft font-medium text-text-strong" : "border-border text-muted-foreground hover:text-text-strong"
+                )}
+              >
+                {c.title}
+              </Link>
+            );
+          })}
         </nav>
       )}
 
@@ -129,7 +184,7 @@ export default async function PositionsPage({ params, searchParams }: Props) {
             />
           </div>
           <PositionsTrendChart points={report.trend} />
-          <PositionsTable rows={report.keywords} />
+          <PositionsTable rows={report.keywords} comparison={comparison} />
         </div>
       )}
     </div>

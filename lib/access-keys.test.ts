@@ -39,7 +39,7 @@ describe("access keys", () => {
   it("finds the key's owner for the key and nothing else", async () => {
     const { db } = fakeDb();
     const { key, id } = await createAccessKey(db, "u1", "laptop");
-    expect(await findKeyOwner(db, key)).toEqual({ keyId: id, userId: "u1", mcpEnabled: false, lastUsedAt: null });
+    expect(await findKeyOwner(db, key)).toEqual({ keyId: id, userId: "u1", mcpEnabled: false, lastUsedAt: null, scope: "read" });
     expect(await findKeyOwner(db, key.slice(0, -1))).toBeNull();
     expect(await findKeyOwner(db, hashKey(key))).toBeNull();
   });

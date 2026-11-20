@@ -91,6 +91,9 @@ model AccessKey {
   name       String
   keyHash    String    @unique // SHA-256 of the whole key, hex
   prefix     String    // the start of the key, to tell keys apart in Settings
+  // Agency fork: "read" (GET only, the default and every key made before) or
+  // "write" (also POST /api/v1/sites/{id}/positions and the push_positions tool).
+  scope      String    @default("read")
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime? // updated at most once a minute
 
@@ -138,7 +141,7 @@ model Site {
   bingDaily     BingDaily[]
   bingWeekly    BingSearchWeekly[]
   jobs          Job[]
-  // Agency fork: positions from a rank tracker such as Labrika (lib/labrika).
+  // Agency fork: positions from rank trackers, imports and the write API (lib/rank-providers).
   rankEngines   ExternalRankEngine[]
 
   @@unique([userId, domain])
@@ -528,16 +531,20 @@ model SchedulerState {
 
 // ============ EXTERNAL RANK TRACKING (agency fork) ============
 
-// One search engine of an external rank tracker, linked to a site. For
-// Labrika: a project (externalSiteId = site_uuid) and one of its search
-// engines (externalEngineId), which is a search engine, a region and a device.
+// One search engine of one rank source, linked to a site. The source is a
+// rank provider id (synced, e.g. "labrika": externalSiteId is the provider's
+// project, externalEngineId its engine), "import" (a CSV uploaded in the UI)
+// or a name a script pushes rows under through the write API. For the last
+// two, externalSiteId is the label key and externalEngineId is
+// "engine|region|device" in lower case.
 model ExternalRankEngine {
   id               String    @id @default(cuid())
   siteId           String
-  source           String    // "labrika"
-  externalSiteId   String    // Labrika site_uuid
-  externalEngineId String    // Labrika search engine id
-  host             String    // the project's host in the tracker
+  source           String    // a rank provider id, "import", or a pushed source name
+  externalSiteId   String    // provider project id; label key for imported and pushed engines
+  externalEngineId String    // provider engine id; "engine|region|device" for imported and pushed ones
+  label            String    @default("") // a user label for imported and pushed engines
+  host             String    // the project's host in the tracker, or the site's domain
   engine           String    // e.g. "Яндекс"
   region           String    // e.g. "Москва (ПК)"
   device           String    // "desktop" | "mobile"

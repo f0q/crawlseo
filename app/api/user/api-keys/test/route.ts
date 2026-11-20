@@ -3,19 +3,19 @@ import { db } from "@/lib/db";
 import { decrypt } from "@/lib/encryption";
 import { testConnection } from "@/lib/dataforseo/client";
 import { testBingKey } from "@/lib/bing";
-import { testLabrikaKey } from "@/lib/labrika";
+import { getRankProvider, isRankProviderId } from "@/lib/rank-providers/registry";
 
-/** Providers with a connection test. PageSpeed has none. */
-const TESTABLE = ["dataforseo", "bing", "labrika"] as const;
-type Testable = (typeof TESTABLE)[number];
+/** Providers with a connection test: DataForSEO, Bing and every rank provider. PageSpeed has none. */
+const isTestable = (provider: string) => provider === "dataforseo" || provider === "bing" || isRankProviderId(provider);
 
 /** Providers that issue one account-wide key, sent as `apiKey`. */
-const isSingleKey = (provider: string) => provider === "bing" || provider === "labrika";
+const isSingleKey = (provider: string) => provider === "bing" || isRankProviderId(provider);
 
-function runTest(provider: Testable, creds: { login?: string; password?: string; apiKey?: string }) {
-  // Bing and Labrika issue one account-wide key; DataForSEO a login and password.
+function runTest(provider: string, creds: { login?: string; password?: string; apiKey?: string }) {
+  // Bing and the rank providers issue one account-wide key; DataForSEO a login and password.
   if (provider === "bing") return testBingKey(creds.apiKey ?? "");
-  if (provider === "labrika") return testLabrikaKey(creds.apiKey ?? "");
+  const rank = getRankProvider(provider);
+  if (rank) return rank.testKey(creds.apiKey ?? "");
   return testConnection(creds.login ?? "", creds.password ?? "");
 }
 
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       apiKey?: string;
     };
     const provider = body.provider ?? "dataforseo";
-    if (!TESTABLE.includes(provider as Testable)) {
+    if (!isTestable(provider)) {
       return Response.json({ error: "This provider has no connection test" }, { status: 400 });
     }
 
@@ -67,7 +67,7 @@ export async function POST(req: Request) {
         // NEXTAUTH_SECRET changed since the key was saved: it cannot be read, so it cannot work.
         return Response.json({ success: false, error: "The saved key cannot be read. Replace it." });
       }
-      return Response.json({ success: await runTest(provider as Testable, creds) });
+      return Response.json({ success: await runTest(provider, creds) });
     }
 
     if (isSingleKey(provider) ? !body.apiKey : !body.login || !body.password) {
@@ -76,7 +76,7 @@ export async function POST(req: Request) {
         { status: 400 }
       );
     }
-    return Response.json({ success: await runTest(provider as Testable, body) });
+    return Response.json({ success: await runTest(provider, body) });
   } catch (error) {
     console.error("API key test error:", error);
     return Response.json({ error: "Connection test failed" }, { status: 500 });

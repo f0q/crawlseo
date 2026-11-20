@@ -92,6 +92,18 @@ describe("Settings > MCP", () => {
     expect(await db.accessKey.count({ where: { id } })).toBe(1);
   });
 
+  it("makes read-only keys by default and write-scoped keys on request (agency fork)", async () => {
+    const plain = (await (await create("Laptop")).json()) as { scope: string };
+    expect(plain.scope).toBe("read");
+    const res = await POST(new Request("http://localhost/api/user/mcp/keys", json({ name: "Parser", scope: "write" })));
+    expect(res.status).toBe(201);
+    expect(((await res.json()) as { scope: string }).scope).toBe("write");
+    const keys = ((await (await GET()).json()) as { keys: { name: string; scope: string }[] }).keys;
+    expect(keys.map((k) => [k.name, k.scope]).sort()).toEqual([["Laptop", "read"], ["Parser", "write"]]);
+    const bad = await POST(new Request("http://localhost/api/user/mcp/keys", json({ name: "Admin", scope: "admin" })));
+    expect(bad.status).toBe(400);
+  });
+
   it("refuses a missing or too long name, and more than the most keys", async () => {
     for (const name of ["", "   ", 42, "x".repeat(61)]) expect((await create(name)).status, String(name)).toBe(400);
     for (let i = 0; i < MAX_KEYS_PER_USER; i++) expect((await create(`k${i}`)).status).toBe(201);

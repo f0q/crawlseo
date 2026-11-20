@@ -5,9 +5,9 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/page-header";
 import { DeleteSiteButton } from "@/components/sites/delete-site-button";
 import { BingSiteSection } from "@/components/settings/bing-site-section";
-import { LabrikaSiteSection } from "@/components/labrika/labrika-site-section";
-import { linkedEngines } from "@/lib/labrika/links";
-import { LABRIKA_UI } from "@/lib/labrika/messages";
+import { RankSourcesSection } from "@/components/rank-tracking/rank-sources-section";
+import { linkedEngines } from "@/lib/rank-providers/links";
+import { listRankProviders, rankProviderIds } from "@/lib/rank-providers/registry";
 import { formatDay } from "@/lib/format";
 
 interface Props {
@@ -45,13 +45,19 @@ export default async function SettingsPage({ params }: Props) {
     where: { userId_provider: { userId: session.user.id, provider: "bing" } },
     select: { id: true },
   });
-  const [labrikaKey, labrikaEngines] = await Promise.all([
-    db.apiKey.findUnique({
-      where: { userId_provider: { userId: session.user.id, provider: "labrika" } },
-      select: { id: true },
+  // Agency fork: rank sources (lib/rank-providers).
+  const [rankKeys, rankEngines] = await Promise.all([
+    db.apiKey.findMany({
+      where: { userId: session.user.id, provider: { in: rankProviderIds() } },
+      select: { provider: true },
     }),
     linkedEngines(db, siteId),
   ]);
+  const rankProviders = listRankProviders().map((p) => ({
+    id: p.id,
+    name: p.name,
+    hasKey: rankKeys.some((k) => k.provider === p.id),
+  }));
 
   return (
     <div>
@@ -104,17 +110,8 @@ export default async function SettingsPage({ params }: Props) {
           </p>
         )}
 
-        {/* Labrika rank tracking (agency fork): only with a Labrika key */}
-        {labrikaKey ? (
-          <LabrikaSiteSection siteId={siteId} domain={site.domain} linked={labrikaEngines} />
-        ) : (
-          <p className="panel px-5 py-4 text-sm text-muted-foreground">
-            {LABRIKA_UI.settings.notConnectedKey}{" "}
-            <Link href="/settings?connect=labrika#connections" className="text-link font-medium">
-              {LABRIKA_UI.settings.connectKey}
-            </Link>
-          </p>
-        )}
+        {/* Rank tracking (agency fork): provider engines, CSV imports, pushed positions */}
+        <RankSourcesSection siteId={siteId} domain={site.domain} linked={rankEngines} providers={rankProviders} />
 
         {/* Data summary */}
         <section aria-labelledby="stored-data-heading">

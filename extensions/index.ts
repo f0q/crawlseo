@@ -16,7 +16,7 @@
  * all routes, server actions and the job loop of that process.
  */
 
-import { registerLabrika } from "@/lib/labrika/jobs";
+import { registerRankTracking } from "@/lib/rank-providers/jobs";
 
 const holder = globalThis as unknown as { crawlseoExtensionsRegistered?: boolean };
 
@@ -24,6 +24,6 @@ const holder = globalThis as unknown as { crawlseoExtensionsRegistered?: boolean
 export function registerExtensions(): void {
   if (holder.crawlseoExtensionsRegistered) return;
   holder.crawlseoExtensionsRegistered = true;
-  // Agency fork: Labrika positions, a sync job per site with a daily schedule.
-  registerLabrika();
+  // Agency fork: rank tracking (lib/rank-providers), one sync job per site with a daily schedule.
+  registerRankTracking();
 }

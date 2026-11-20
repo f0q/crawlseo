@@ -14,7 +14,13 @@ vi.mock("@/lib/auth", () => ({ auth: async () => ({ user: { id: "user-1" } }) })
 vi.mock("@/lib/db", () => ({ db }));
 vi.mock("@/lib/encryption", () => ({ decrypt: (v: string) => v.replace(/^enc:/, "") }));
 vi.mock("@/lib/bing", () => ({ testBingKey }));
-vi.mock("@/lib/labrika", () => ({ testLabrikaKey }));
+vi.mock("@/lib/rank-providers/registry", () => {
+  const labrika = { id: "labrika", name: "Labrika", testKey: testLabrikaKey };
+  return {
+    getRankProvider: (id: string) => (id === "labrika" ? labrika : undefined),
+    isRankProviderId: (id: string) => id === "labrika",
+  };
+});
 vi.mock("@/lib/dataforseo/client", () => ({ testConnection }));
 
 import { POST } from "./route";
