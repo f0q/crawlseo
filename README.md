@@ -150,7 +150,7 @@ crawlseo has an MCP (Model Context Protocol) server, so an AI agent such as Clau
 
 **The MCP is read-only.** Its tools read your data and nothing else: no tool writes, changes, queues or triggers anything. There is no `run_crawl` and no sync; crawls and syncs start in the app or on the schedule. Every tool reads through your instance's API (`/api/v1`) with an access key, never from the database, and a key sees the sites of its own account only.
 
-Agency fork: one exception, `push_positions`, stores keyword positions you collected yourself (`POST /api/v1/sites/{id}/positions`). It works only with a key created with the write scope in Settings > MCP; existing keys and new keys by default stay read-only and are refused. See [docs/agency/rank-providers.md](docs/agency/rank-providers.md).
+Agency fork: exceptions. `push_positions` stores keyword positions you collected yourself (`POST /api/v1/sites/{id}/positions`). It works only with a key created with the write scope in Settings > MCP; existing keys and new keys by default stay read-only and are refused. See [docs/agency/rank-providers.md](docs/agency/rank-providers.md). The client project tools that write (`create_project`, `upsert_note`, `add_journal_entry`, `upsert_task`) need the same scope; see [docs/agency/projects.md](docs/agency/projects.md).
 
 ### Create a key
 
@@ -194,7 +194,9 @@ Tested end to end with Claude Code.
 | `get_bing_pages` | Top pages in Bing, summed the same way |
 | `get_saved_keywords` | Your saved keywords with their notes and Search Console totals, for the last N days or a date range |
 | `get_positions` | Agency fork: keyword positions of a site from any rank source (Labrika, a CSV import, pushed rows) for one engine, with the change since the previous check, top 3/10/30 counts and their trend |
-| `push_positions` | Agency fork, the one write tool: stores positions you collected under a source name of yours; needs a write-scoped key |
+| `push_positions` | Agency fork, a write tool: stores positions you collected under a source name of yours; needs a write-scoped key |
+| `list_projects`, `get_project` | Agency fork: client projects you are a member of, with the passport, notes, tasks, journal and files |
+| `create_project`, `upsert_note`, `add_journal_entry`, `upsert_task` | Agency fork, write tools for client projects; need a write-scoped key. See [docs/agency/projects.md](docs/agency/projects.md) |
 
 The MCP talks only to your own instance, so it adds no outside service to [Your data stays yours](#your-data-stays-yours).
 
@@ -581,6 +583,8 @@ There is no long-running process on Vercel, so:
 | `SCHEDULE_GSC_SYNC_HOURS` | No | Hours between GSC syncs of a site (default `24`, `0` turns them off) |
 | `SCHEDULE_BING_SYNC_HOURS` | No | Hours between Bing syncs of a site (default `24`, `0` turns them off) |
 | `SCHEDULE_RANK_SYNC_HOURS` | No | Agency fork: hours between rank syncs of a site with a linked rank provider engine such as Labrika (default `24`, `0` turns them off). The older `SCHEDULE_LABRIKA_SYNC_HOURS` is still read when this one is not set |
+| `UPLOADS_DIR` | No | Agency fork: where client project files are stored (default `/data/uploads`); mount a volume there. See [docs/agency/projects.md](docs/agency/projects.md) |
+| `CRAWLSEO_ADMIN_EMAILS` | No | Agency fork: comma-separated emails that act as owners of every client project |
 | `SCHEDULE_CRAWL_DAYS` | No | Days between scheduled crawls of a site (default `7`, `0` turns them off). Each user can set their own interval in Settings > Schedule; `0` here keeps crawls off for everyone. Docker only |
 | `SCHEDULE_VITALS_DAYS` | No | Days between scheduled vitals checks of a site (default `7`, `0` turns them off). Each user can set their own interval in Settings > Schedule; `0` here keeps them off for everyone. Docker only |
 | `ALERT_WEBHOOKS_ENABLED` | No | Set to `false` to turn alert webhooks off for the instance: nothing is sent and Settings shows no webhook form. See [Alert webhooks](#alert-webhooks) |

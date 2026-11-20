@@ -41,6 +41,9 @@ COPY --from=builder /app/worker.cjs ./worker.cjs
 # Still no npm invocation in this stage — a second npm install under QEMU
 # arm64 emulation intermittently crashes with SIGILL (see PR #23).
 COPY --from=builder /app/prisma-cli ./node_modules
+# Agency fork: project uploads (UPLOADS_DIR). A named volume mounted here
+# takes this owner, so the app can write to it.
+RUN mkdir -p /data/uploads && chown nextjs:nodejs /data/uploads
 USER nextjs
 EXPOSE 3000
 ENV PORT=3000

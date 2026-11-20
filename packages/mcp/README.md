@@ -55,7 +55,10 @@ Serves streamable HTTP on `http://127.0.0.1:3333/mcp` and a health check on `/he
 | `get_bing_pages` | Top pages in Bing, summed the same way |
 | `get_saved_keywords` | Your saved keywords with their notes and Search Console totals, for the last N days or a date range |
 | `get_positions` | Agency fork: keyword positions of a site from any rank source (Labrika, a CSV import, pushed rows) for one engine, with the change since the previous check, top 3/10/30 counts and their trend |
-| `push_positions` | Agency fork, the one write tool: stores positions you collected under a source name of yours; needs a key with the write scope, a read-only key is refused |
+| `push_positions` | Agency fork, a write tool: stores positions you collected under a source name of yours; needs a key with the write scope, a read-only key is refused |
+| `list_projects` | Agency fork: client projects you are a member of, with status, role, sites, open tasks and the latest journal entry |
+| `get_project` | Agency fork: a project's passport, sites, members, notes, open tasks, journal and files |
+| `create_project`, `upsert_note`, `add_journal_entry`, `upsert_task` | Agency fork, write tools for client projects; need a key with the write scope |
 
 ## License
 
