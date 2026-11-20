@@ -138,6 +138,8 @@ model Site {
   bingDaily     BingDaily[]
   bingWeekly    BingSearchWeekly[]
   jobs          Job[]
+  // Agency fork: positions from a rank tracker such as Labrika (lib/labrika).
+  rankEngines   ExternalRankEngine[]
 
   @@unique([userId, domain])
 }
@@ -522,4 +524,48 @@ model WorkerHeartbeat {
 model SchedulerState {
   key String   @id
   at  DateTime
+}
+
+// ============ EXTERNAL RANK TRACKING (agency fork) ============
+
+// One search engine of an external rank tracker, linked to a site. For
+// Labrika: a project (externalSiteId = site_uuid) and one of its search
+// engines (externalEngineId), which is a search engine, a region and a device.
+model ExternalRankEngine {
+  id               String    @id @default(cuid())
+  siteId           String
+  source           String    // "labrika"
+  externalSiteId   String    // Labrika site_uuid
+  externalEngineId String    // Labrika search engine id
+  host             String    // the project's host in the tracker
+  engine           String    // e.g. "Яндекс"
+  region           String    // e.g. "Москва (ПК)"
+  device           String    // "desktop" | "mobile"
+  lastSyncedAt     DateTime?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  site             Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  ranks            ExternalRank[]
+
+  @@unique([siteId, source, externalSiteId, externalEngineId])
+}
+
+// One keyword on one check date of one engine. position null: checked, and
+// the site was not within the depth the tracker checks (top 100 at most). A
+// keyword the tracker did not check on a date has no row for that date.
+model ExternalRank {
+  id             String   @id @default(cuid())
+  engineId       String
+  keyword        String
+  date           DateTime // the check date, UTC midnight
+  position       Int?
+  url            String?
+  frequency      Int?
+  frequencyExact Int?
+
+  engine         ExternalRankEngine @relation(fields: [engineId], references: [id], onDelete: Cascade)
+
+  @@unique([engineId, keyword, date])
+  @@index([engineId, date])
 }
