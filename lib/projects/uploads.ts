@@ -1,40 +1,20 @@
 import { createHash, randomBytes } from "crypto";
 import { mkdir, readFile, rm, writeFile } from "fs/promises";
 import { join, resolve } from "path";
+import { ALLOWED_EXTENSIONS, FILE_TYPES, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB, type FileKind } from "./file-types";
 import { PROJECT_MESSAGES as M } from "./messages";
 
 /*
  * Project files on disk (agency fork). A file is accepted only when its
- * extension is on the list below and its first bytes match that type, at
+ * extension is in ./file-types.ts and its first bytes match that type, at
  * most 20 MB. It is stored as UPLOADS_DIR/<projectId>/<32 random hex>.<ext>,
  * so a name from the browser never reaches the file system, and it is always
  * sent back as an attachment with the type from this list. HTML, SVG and
  * anything executable are refused.
  */
 
-export const MAX_UPLOAD_BYTES = 20 * 1024 * 1024;
-export const MAX_UPLOAD_MB = MAX_UPLOAD_BYTES / 1024 / 1024;
+export { ACCEPT_ATTRIBUTE, ALLOWED_EXTENSIONS, FILE_TYPES, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "./file-types";
 export const DEFAULT_UPLOADS_DIR = "/data/uploads";
-
-type Kind = "pdf" | "zip-word" | "zip-excel" | "text" | "png" | "jpeg" | "gif" | "webp";
-
-export const FILE_TYPES: Record<string, { mime: string; kind: Kind }> = {
-  pdf: { mime: "application/pdf", kind: "pdf" },
-  docx: { mime: "application/vnd.openxmlformats-officedocument.wordprocessingml.document", kind: "zip-word" },
-  xlsx: { mime: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", kind: "zip-excel" },
-  txt: { mime: "text/plain; charset=utf-8", kind: "text" },
-  md: { mime: "text/markdown; charset=utf-8", kind: "text" },
-  csv: { mime: "text/csv; charset=utf-8", kind: "text" },
-  png: { mime: "image/png", kind: "png" },
-  jpg: { mime: "image/jpeg", kind: "jpeg" },
-  jpeg: { mime: "image/jpeg", kind: "jpeg" },
-  gif: { mime: "image/gif", kind: "gif" },
-  webp: { mime: "image/webp", kind: "webp" },
-};
-
-export const ALLOWED_EXTENSIONS = Object.keys(FILE_TYPES);
-/** For <input accept>. */
-export const ACCEPT_ATTRIBUTE = ALLOWED_EXTENSIONS.map((e) => `.${e}`).join(",");
 
 const startsWith = (b: Uint8Array, sig: number[], at = 0) => sig.every((v, i) => b[at + i] === v);
 const ascii = (s: string) => [...s].map((c) => c.charCodeAt(0));
@@ -54,7 +34,7 @@ function isUtf8Text(b: Buffer): boolean {
 }
 
 /** Whether the bytes are a file of that kind, by its signature. */
-export function matchesKind(kind: Kind, b: Buffer): boolean {
+export function matchesKind(kind: FileKind, b: Buffer): boolean {
   switch (kind) {
     case "pdf":
       return startsWith(b, ascii("%PDF-"));

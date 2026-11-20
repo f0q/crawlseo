@@ -18,8 +18,10 @@ import {
   Link as LinkIcon,
   SearchCheck,
   TrendingUp,
+  FolderKanban,
   type LucideIcon,
 } from "lucide-react";
+import { PROJECT_MESSAGES } from "@/lib/projects/messages";
 
 type NavItem = {
   href: string;
@@ -84,9 +86,15 @@ export function SidebarNav({
       }
     : null;
 
+  // Agency fork: client projects (lib/projects), on every page.
+  const projectsNav: NavGroup = {
+    label: PROJECT_MESSAGES.nav.group,
+    items: [{ href: "/projects", label: PROJECT_MESSAGES.nav.projects, icon: FolderKanban }],
+  };
+
   // The home (All sites, or any page outside a site) has no site groups: the
   // workspace switcher above is the way into a site.
-  const groups = [workspaceNav, researchNav, connectNav].filter(
+  const groups = [projectsNav, workspaceNav, researchNav, connectNav].filter(
     (g): g is NavGroup => g !== null
   );
 
