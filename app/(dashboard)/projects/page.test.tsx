@@ -55,6 +55,7 @@ describe("projects pages", () => {
     expect(html).toContain("Audited the titles");
     expect(html).toContain('href="/sites"');
     expect(html).not.toContain("Secret B");
+    expect(html).toMatch(/Budgets this month[\s\S]*0 of 0 RUB[\s\S]*Labrika: 0 checks a month planned, 0 started this month, limit 5000/);
   });
 
   it("renders every tab of a project", async () => {
@@ -63,6 +64,8 @@ describe("projects pages", () => {
     expect(await page("sites")).toMatch(/quilltab\.app[\s\S]*Remove from project/);
     expect(await page("tasks")).toContain("Fix titles");
     expect(await page("journal")).toContain("Audited the titles");
+    expect(await page("rank")).toMatch(/Start checks for this project[\s\S]*None \(Search Console or other data only\)[\s\S]*0 checks per month[\s\S]*All projects this month[\s\S]*No run yet/);
+    expect(await page("budget")).toMatch(/0 of 0 RUB[\s\S]*work[\s\S]*No spending this month[\s\S]*Last 6 months/);
   });
 
   it("is read-only for a viewer, and another user's project is not found", async () => {
@@ -71,6 +74,8 @@ describe("projects pages", () => {
     expect(html).toContain("You can view this project");
     expect(html).not.toContain("Delete project");
     expect(await page("tasks")).not.toContain("Add task");
+    expect(await page("rank")).toContain("You can view these settings");
+    expect(await page("budget")).not.toContain("Save plan");
     await expect(page(undefined, "secret-b")).rejects.toThrow("not found");
   });
 });

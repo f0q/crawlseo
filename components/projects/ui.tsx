@@ -62,6 +62,16 @@ export function ErrorLine({ error }: { error: string | null }) {
   );
 }
 
+/** A refused request: the server's message and the HTTP status. */
+export class SendError extends Error {
+  constructor(
+    message: string,
+    readonly status: number
+  ) {
+    super(message);
+  }
+}
+
 /** A request to /api/projects; throws the error message the server answered with. */
 export async function send<T = unknown>(url: string, method = "GET", body?: unknown): Promise<T> {
   const res = await fetch(url, {
@@ -71,7 +81,7 @@ export async function send<T = unknown>(url: string, method = "GET", body?: unkn
       : body !== undefined && { body: JSON.stringify(body), headers: { "Content-Type": "application/json" } }),
   });
   const data = (await res.json().catch(() => ({}))) as T & { error?: string };
-  if (!res.ok) throw new Error(data.error || M.common.error);
+  if (!res.ok) throw new SendError(data.error || M.common.error, res.status);
   return data;
 }
 

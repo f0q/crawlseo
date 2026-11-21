@@ -7,6 +7,9 @@ import { atLeast } from "@/lib/projects/access";
 import { sessionActor } from "@/lib/projects/dashboard";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { getProject, listFiles, listJournal, listNotes, listTasks } from "@/lib/projects/service";
+import { getBudget } from "@/lib/projects/budget";
+import { getRankSettings } from "@/lib/projects/rank";
+import { MONTH_PATTERN } from "@/lib/projects/rank-usage";
 import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { FilesSection } from "@/components/projects/files-section";
@@ -16,9 +19,11 @@ import { NotesSection } from "@/components/projects/notes-section";
 import { ProjectForm } from "@/components/projects/project-form";
 import { SitesSection } from "@/components/projects/sites-section";
 import { TasksSection } from "@/components/projects/tasks-section";
+import { BudgetSection } from "@/components/projects/budget-section";
+import { RankSettingsSection } from "@/components/projects/rank-settings-section";
 import { StatusBadge } from "@/components/projects/ui";
 
-const TABS = ["passport", "brief", "sites", "tasks", "journal"] as const;
+const TABS = ["passport", "brief", "sites", "tasks", "journal", "rank", "budget"] as const;
 type Tab = (typeof TABS)[number];
 
 const iso = (d: Date) => d.toISOString();
@@ -29,7 +34,7 @@ export default async function ProjectPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; month?: string | string[] }>;
 }) {
   const [{ slug }, query] = await Promise.all([params, searchParams]);
   const session = await auth();
@@ -74,6 +79,20 @@ export default async function ProjectPage({
   } else if (tab === "tasks") {
     const { tasks } = await listTasks(actor, slug);
     body = <TasksSection slug={slug} tasks={tasks} canEdit={canEdit} />;
+  } else if (tab === "rank") {
+    const data = await getRankSettings(actor, slug);
+    body = (
+      <RankSettingsSection
+        key={data.settings.updatedAt ? iso(data.settings.updatedAt) : "new"}
+        slug={slug}
+        data={{ ...data, settings: { ...data.settings, updatedAt: data.settings.updatedAt ? iso(data.settings.updatedAt) : null } }}
+        canEdit={canEdit}
+      />
+    );
+  } else if (tab === "budget") {
+    const month = MONTH_PATTERN.test(String(query.month)) ? String(query.month) : undefined;
+    const data = await getBudget(actor, slug, month);
+    body = <BudgetSection key={`${data.month}-${data.currency}-${data.categories.join(",")}-${JSON.stringify(data.plan)}`} slug={slug} data={data} canEdit={canEdit} />;
   } else {
     const { entries } = await listJournal(actor, slug, { limit: 500 });
     body = <JournalSection slug={slug} entries={entries} sites={sites} canEdit={canEdit} />;
