@@ -58,7 +58,8 @@ Serves streamable HTTP on `http://127.0.0.1:3333/mcp` and a health check on `/he
 | `push_positions` | Agency fork, a write tool: stores positions you collected under a source name of yours; needs a key with the write scope, a read-only key is refused |
 | `list_projects` | Agency fork: client projects you are a member of, with status, role, sites, open tasks and the latest journal entry |
 | `get_project` | Agency fork: a project's passport, sites, members, notes, open tasks, journal and files |
-| `create_project`, `upsert_note`, `add_journal_entry`, `upsert_task` | Agency fork, write tools for client projects; need a key with the write scope |
+| `get_project_budget`, `get_rank_usage` | Agency fork: a project's budget (plan vs actual) and rank check usage against the provider limit |
+| `create_project`, `upsert_note`, `add_journal_entry`, `upsert_task`, `add_budget_entry` | Agency fork, write tools for client projects; need a key with the write scope |
 
 ## License
 

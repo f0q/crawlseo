@@ -78,6 +78,9 @@ const CALLS: [string, Record<string, unknown>, RegExp][] = [
   ["get_positions", { siteId: "site-a", source: "import" }, /source CSV import[\s\S]*quilltab app\s+\| -\s+\| 4/],
   ["list_projects", {}, /Quilltab\s+\(slug: quilltab, client, your role: owner\)[\s\S]*quilltab\.app \(site-a\)[\s\S]*Open tasks: 1/],
   ["get_project", { slug: "quilltab" }, /Project Quilltab[\s\S]*QUILLTAB_PANEL_PASS[\s\S]*\[brief\] Brief[\s\S]*Grow organic sign-ups[\s\S]*\[todo\] Fix titles[\s\S]*Audited the titles/],
+  ["get_project_budget", { slug: "quilltab" }, /Budget \d{4}-\d{2}, RUB: plan 0, actual 0 \(no plan used\)[\s\S]*Categories: work, services, ads/],
+  ["get_rank_usage", { slug: "quilltab" }, /Rank checks: OFF, source none, manual[\s\S]*No runs this month/],
+  ["get_rank_usage", {}, /Rank checks \d{4}-\d{2}:\n- Labrika \(Business, 0\.072 RUB per check\): planned 0 a month of limit 5000/],
   ["get_saved_keywords", { siteId: "site-a" }, /2 saved keywords[\s\S]*1 had no Search Console data[\s\S]*never seen query\s+\| -[\s\S]*launch target[\s\S]*quilltab notes\s+\| \d/],
 ];
 

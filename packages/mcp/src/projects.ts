@@ -11,8 +11,8 @@ import { z } from "zod";
 
 import type { ApiClient } from "./api-client";
 
-export const PROJECT_TOOL_NAMES = ["list_projects", "get_project"] as const;
-export const PROJECT_WRITE_TOOL_NAMES = ["create_project", "upsert_note", "add_journal_entry", "upsert_task"] as const;
+export const PROJECT_TOOL_NAMES = ["list_projects", "get_project", "get_project_budget", "get_rank_usage"] as const;
+export const PROJECT_WRITE_TOOL_NAMES = ["create_project", "upsert_note", "add_journal_entry", "upsert_task", "add_budget_entry"] as const;
 
 type Passport = {
   slug: string;
@@ -48,7 +48,29 @@ type Task = { id: string; title: string; status: string; priority: string; due: 
 type Entry = { id: string; date: string; text: string; link: string | null; author: string };
 type File = { id: string; name: string; size: number; category: string; createdAt: string };
 
+type BudgetRow = { category: string; plan: number; actual: number; auto: number };
+type Budget = {
+  month: string;
+  currency: string;
+  categories: string[];
+  entries: { id: string; date: string; category: string; amount: number; note: string | null; author: string; externalKey: string | null }[];
+  autoCosts: { name: string; checks: number; pricePerCheck: number; currency: string; amount: number; counted: boolean }[];
+  summary: { plan: number; actual: number; percent: number | null; rows: BudgetRow[] };
+  history: { month: string; plan: number; actual: number; percent: number | null }[];
+};
+type Plan = { provider: string; name: string; monthlyLimit: number; planName: string; pricePerCheck: number; currency: string };
+type ProviderUsage = { plan: Plan; canStart: boolean; planned: number; used: number; cost: number; limit: { over: boolean; near: boolean }; projects: { slug: string; perMonth: number; frequency: string }[]; otherPlanned: number };
+type RankSettings = {
+  settings: { enabled: boolean; source: string; frequency: string; engineIds: string[] };
+  engines: { id: string; domain: string; source: string; engine: string; region: string; device: string; keywords: number | null; included: boolean }[];
+  usage: { perRun: number; runsPerMonth: number; perMonth: number; usedThisMonth: number; month: string };
+  starting: { mode: string; missingCabinetFor: string[] };
+};
+type RankRun = { createdAt: string; provider: string; trigger: string; status: string; reason: string | null; estimatedChecks: number };
+type RankUsage = { month: string; checks: number; costs: { provider: string; checks: number; pricePerCheck: number; currency: string; amount: number }[]; runs: RankRun[] };
+
 const slug = z.string().describe("The project slug, from list_projects");
+const monthArg = z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "YYYY-MM").optional().describe("YYYY-MM. Default: this month (UTC)");
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "YYYY-MM-DD");
 const P = (s: string) => `/projects/${encodeURIComponent(s)}`;
 
@@ -107,6 +129,56 @@ export function formatProject(d: Detail, notes: Note[], tasks: Task[], journal: 
       (files.length
         ? "\n" + files.map((f) => `- ${f.name} (${f.category}, ${Math.ceil(f.size / 1024)} KB, id ${f.id}): GET /api/v1${P(d.project.slug)}/files/${f.id}`).join("\n")
         : " none"),
+  ].join("\n");
+}
+
+const pct = (p: number | null) => (p === null ? "no plan" : `${p}%`);
+
+export function formatBudget(b: Budget): string {
+  const c = b.currency;
+  const rows = b.summary.rows.map(
+    (r) => `${r.category.padEnd(12)} | ${String(r.plan).padStart(10)} | ${String(r.actual).padStart(10)}${r.auto ? ` (incl. ${r.auto} automatic)` : ""}`
+  );
+  return [
+    `Budget ${b.month}, ${c}: plan ${b.summary.plan}, actual ${b.summary.actual} (${pct(b.summary.percent)} used)`,
+    `\nCategory     |       Plan |     Actual\n${rows.join("\n")}`,
+    `\nAutomatic service costs:` +
+      (b.autoCosts.length
+        ? "\n" + b.autoCosts.map((a) => `- ${a.name}: ${a.checks} checks x ${a.pricePerCheck} ${a.currency} = ${a.amount} ${a.currency}${a.counted ? "" : " (other currency, not added)"}`).join("\n")
+        : " none"),
+    `\nEntries (${b.entries.length}):` +
+      (b.entries.length
+        ? "\n" + b.entries.map((e) => `- ${e.date} ${e.category} ${e.amount} ${c}${e.note ? ` ${e.note}` : ""} [${e.author}] (id ${e.id}${e.externalKey ? `, key ${e.externalKey}` : ""})`).join("\n")
+        : " none"),
+    `\nLast months: ${b.history.map((h) => `${h.month} ${h.actual}/${h.plan}`).join(", ")}`,
+    `Categories: ${b.categories.join(", ")}`,
+  ].join("\n");
+}
+
+export function formatProviderUsage(month: string, rank: ProviderUsage[]): string {
+  return [
+    `Rank checks ${month}:`,
+    ...rank.map(
+      (u) =>
+        `- ${u.plan.name} (${u.plan.planName || "plan"}, ${u.plan.pricePerCheck} ${u.plan.currency} per check${u.canStart ? "" : ", started manually in the provider"}): ` +
+        `planned ${u.planned} a month of limit ${u.plan.monthlyLimit || "none"}${u.limit.over ? " (OVER THE LIMIT)" : u.limit.near ? " (near the limit)" : ""}, started this month ${u.used} (${u.cost} ${u.plan.currency})` +
+        (u.projects.length ? `\n  ${u.projects.map((p) => `${p.slug}: ${p.perMonth}/month ${p.frequency}`).join("; ")}${u.otherPlanned ? `; other projects: ${u.otherPlanned}` : ""}` : "")
+    ),
+  ].join("\n");
+}
+
+export function formatRankUsage(s: RankSettings, u: RankUsage): string {
+  const st = s.settings;
+  const included = s.engines.filter((e) => e.included);
+  return [
+    `Rank checks: ${st.enabled ? "ON" : "OFF"}, source ${st.source}, ${st.frequency}`,
+    `Engines: ${included.map((e) => `${e.domain} ${e.engine} ${e.region} ${e.device} (${e.keywords ?? "?"} keywords)`).join("; ") || "none"}`,
+    `Usage: ${s.usage.perRun} checks per run x ${s.usage.runsPerMonth} runs = ${s.usage.perMonth} a month`,
+    `Starting: ${s.starting.mode}${s.starting.missingCabinetFor.length ? `; no cabinet login for ${s.starting.missingCabinetFor.join(", ")} (runs are skipped)` : ""}`,
+    `\n${u.month}: ${u.checks} checks started` + (u.costs.length ? `, ${u.costs.map((c) => `${c.amount} ${c.currency} (${c.provider})`).join(", ")}` : ""),
+    u.runs.length
+      ? u.runs.map((r) => `- ${r.createdAt.slice(0, 16)} ${r.trigger} ${r.status}${r.reason ? ` (${r.reason})` : ""}, ${r.estimatedChecks} checks`).join("\n")
+      : "No runs this month.",
   ].join("\n");
 }
 
@@ -259,6 +331,65 @@ export function registerProjectTools(
       run(async () => {
         const r = await api.post<{ task: Task; created: boolean }>(`${P(slug)}/tasks`, task);
         return `${r.created ? "Created" : "Updated"} task [${r.task.status}] ${r.task.title} (id ${r.task.id}${r.task.externalKey ? `, key ${r.task.externalKey}` : ""}).`;
+      })
+  );
+
+  server.registerTool(
+    "get_project_budget",
+    {
+      title: "Project budget",
+      description:
+        "A client project's budget for a month: the plan by category, the actual spending (entries plus automatic service costs: rank checks x price per check), plan vs actual and % used, the entries, and the last 6 months.",
+      inputSchema: { slug, month: monthArg },
+      annotations: readOnly,
+    },
+    ({ slug, month }) =>
+      run(async () => formatBudget(await api.get<Budget>(`${P(slug)}/budget`, { month })))
+  );
+
+  server.registerTool(
+    "get_rank_usage",
+    {
+      title: "Rank check usage",
+      description:
+        "Rank check usage. With slug: the project's rank tracking settings (on/off, source, frequency, engines), planned checks per month and the runs of the month with their checks and cost. Without slug: every provider's planned and started checks across all projects against its monthly limit.",
+      inputSchema: { slug: slug.optional(), month: monthArg },
+      annotations: readOnly,
+    },
+    ({ slug, month }) =>
+      run(async () => {
+        if (!slug) {
+          const r = await api.get<{ month: string; rank: ProviderUsage[] }>("/projects/_summary", { month });
+          return formatProviderUsage(r.month, r.rank);
+        }
+        const [settings, usage] = await Promise.all([
+          api.get<RankSettings>(`${P(slug)}/rank-settings`),
+          api.get<RankUsage>(`${P(slug)}/rank-usage`, { month }),
+        ]);
+        return formatRankUsage(settings, usage);
+      })
+  );
+
+  server.registerTool(
+    "add_budget_entry",
+    {
+      title: "Add a budget entry",
+      description:
+        "Adds an actual cost to a project's budget: date, category (one of the project's categories, see get_project_budget), amount in the project's currency, a note. With externalKey (your own id, e.g. an invoice number) the same key again updates that entry instead of adding one, so a retry is safe. Needs a key with the write scope.",
+      inputSchema: {
+        slug,
+        category: z.string().min(1).max(40),
+        amount: z.number().describe("In the project's currency; negative for a refund"),
+        date: day.optional().describe("YYYY-MM-DD. Default: today (UTC)"),
+        note: z.string().max(500).optional(),
+        externalKey: z.string().max(100).optional(),
+      },
+      annotations: UPSERT,
+    },
+    ({ slug, ...entry }) =>
+      run(async () => {
+        const r = await api.post<{ entry: { id: string; date: string; category: string; amount: number }; created: boolean }>(`${P(slug)}/budget-entries`, entry);
+        return `${r.created ? "Added" : "Updated"} ${r.entry.date} ${r.entry.category} ${r.entry.amount} (id ${r.entry.id}).`;
       })
   );
 }

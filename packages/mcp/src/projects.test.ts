@@ -56,6 +56,7 @@ describe("project MCP tools", () => {
       ["upsert_note", { slug: "quilltab", title: "x", body: "y" }],
       ["add_journal_entry", { slug: "quilltab", text: "x" }],
       ["upsert_task", { slug: "quilltab", title: "x" }],
+      ["add_budget_entry", { slug: "quilltab", category: "work", amount: 10 }],
     ] as const) {
       const r = await call(client, name, args);
       expect(r.isError, name).toBe(true);
@@ -88,6 +89,20 @@ describe("project MCP tools", () => {
     expect(read.text).toMatch(/Project Acme[\s\S]*ACME_SSH_KEY[\s\S]*acme-books\.com[\s\S]*\[brief\] Brief \(id \S+, version 2[\s\S]*Books for kids, Moscow[\s\S]*\[doing\] Express audit \(id \S+, key presale-1[\s\S]*2026-11-20 Set up the project \[seo-agent\]/);
     expect((await call(client, "list_projects", {})).text).toMatch(/2 project\(s\)[\s\S]*Acme/);
     expect((await call(client, "get_project", { slug: "secret-b" })).text).toBe("Project not found");
+    await client.close();
+  });
+
+  it("add_budget_entry adds once per externalKey and get_project_budget reads it back", async () => {
+    const client = await connect(f.keyAWrite);
+    const entry = { slug: "quilltab", category: "links", amount: 1500, date: new Date().toISOString().slice(0, 10), note: "Two guest posts", externalKey: "inv-7" };
+    expect((await call(client, "add_budget_entry", entry)).text).toMatch(/^Added \d{4}-\d{2}-\d{2} links 1500 \(id \S+\)\.$/);
+    expect((await call(client, "add_budget_entry", { ...entry, amount: 1600 })).text).toMatch(/^Updated .* links 1600/);
+    const bad = await call(client, "add_budget_entry", { ...entry, category: "travel", externalKey: undefined });
+    expect(bad).toMatchObject({ isError: true });
+    expect(bad.text).toMatch(/Unknown category "travel"/);
+    const read = await call(client, "get_project_budget", { slug: "quilltab" });
+    expect(read.text).toMatch(/actual 1600[\s\S]*links\s+\|\s+0 \|\s+1600[\s\S]*links 1600 RUB Two guest posts \[b?a@quilltab\.app \(key parser\)\] \(id \S+, key inv-7\)/);
+    expect((await call(client, "get_project_budget", { slug: "secret-b" })).text).toBe("Project not found");
     await client.close();
   });
 });
