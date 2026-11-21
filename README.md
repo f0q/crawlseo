@@ -150,7 +150,7 @@ crawlseo has an MCP (Model Context Protocol) server, so an AI agent such as Clau
 
 **The MCP is read-only.** Its tools read your data and nothing else: no tool writes, changes, queues or triggers anything. There is no `run_crawl` and no sync; crawls and syncs start in the app or on the schedule. Every tool reads through your instance's API (`/api/v1`) with an access key, never from the database, and a key sees the sites of its own account only.
 
-Agency fork: exceptions. `push_positions` stores keyword positions you collected yourself (`POST /api/v1/sites/{id}/positions`). It works only with a key created with the write scope in Settings > MCP; existing keys and new keys by default stay read-only and are refused. See [docs/agency/rank-providers.md](docs/agency/rank-providers.md). The client project tools that write (`create_project`, `upsert_note`, `add_journal_entry`, `upsert_task`) need the same scope; see [docs/agency/projects.md](docs/agency/projects.md).
+Agency fork: exceptions. `push_positions` stores keyword positions you collected yourself (`POST /api/v1/sites/{id}/positions`). It works only with a key created with the write scope in Settings > MCP; existing keys and new keys by default stay read-only and are refused. See [docs/agency/rank-providers.md](docs/agency/rank-providers.md). The client project tools that write (`create_project`, `upsert_note`, `add_journal_entry`, `upsert_task`, `add_budget_entry`) need the same scope; see [docs/agency/projects.md](docs/agency/projects.md).
 
 ### Create a key
 
@@ -196,7 +196,8 @@ Tested end to end with Claude Code.
 | `get_positions` | Agency fork: keyword positions of a site from any rank source (Labrika, a CSV import, pushed rows) for one engine, with the change since the previous check, top 3/10/30 counts and their trend |
 | `push_positions` | Agency fork, a write tool: stores positions you collected under a source name of yours; needs a write-scoped key |
 | `list_projects`, `get_project` | Agency fork: client projects you are a member of, with the passport, notes, tasks, journal and files |
-| `create_project`, `upsert_note`, `add_journal_entry`, `upsert_task` | Agency fork, write tools for client projects; need a write-scoped key. See [docs/agency/projects.md](docs/agency/projects.md) |
+| `get_project_budget`, `get_rank_usage` | Agency fork: a project's budget and rank check usage. See [docs/agency/rank-settings-and-budget.md](docs/agency/rank-settings-and-budget.md) |
+| `create_project`, `upsert_note`, `add_journal_entry`, `upsert_task`, `add_budget_entry` | Agency fork, write tools for client projects; need a write-scoped key. See [docs/agency/projects.md](docs/agency/projects.md) |
 
 The MCP talks only to your own instance, so it adds no outside service to [Your data stays yours](#your-data-stays-yours).
 

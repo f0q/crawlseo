@@ -36,6 +36,13 @@ change.
    };
    ```
 
+   Optional, for providers that can start a check: `billing` (the default
+   plan: price, checks in it, monthly limit), `cabinet` (the login the
+   provider needs, stored as ApiKey `cabinet.keyProvider` with a login and a
+   password) and `startCheck(login, targets, opts)`, which returns per
+   engine whether it started. Without them the project tab shows "Manual".
+   See [rank-settings-and-budget.md](rank-settings-and-budget.md).
+
    The client implements `ping`, `listProjects`, `listEngines(project)`,
    `listDates(engine)` and `fetchPositions(engine, dates)`. Rows are
    `{ keyword, date: "YYYY-MM-DD", position: number | null, url, frequency?, frequencyExact? }`;

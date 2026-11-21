@@ -188,3 +188,11 @@ write-scoped key:
    dashboard meanwhile: read it again, merge, retry.
 4. A new project from the agent (`/newproject`): `POST /api/v1/projects` or
    the MCP tool `create_project`.
+
+## Rank tracking and budget
+
+Two more tabs, Rank tracking (whether and how often position checks are
+started, with usage against the provider's monthly limit) and Budget (the
+monthly plan and actual spending), with their API routes and MCP tools: see
+[rank-settings-and-budget.md](rank-settings-and-budget.md).
+
