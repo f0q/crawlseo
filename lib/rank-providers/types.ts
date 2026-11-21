@@ -70,6 +70,8 @@ export interface RankProviderMeta {
   /** Under the key field: where the key comes from. */
   help: string;
   helpLink: { href: string; label: string };
+  /** Set by the registry when the provider can start checks with a cabinet login. */
+  cabinet?: RankCabinetMeta;
 }
 
 export interface RankProviderClientOptions {
@@ -77,6 +79,46 @@ export interface RankProviderClientOptions {
   sleep?: (ms: number) => Promise<void>;
   /** Spacing between requests of this process; tests set 0. */
   minGapMs?: number;
+}
+
+/** A login and password of the provider's web cabinet, for what its public API cannot do. */
+export interface RankCabinetLogin {
+  login: string;
+  password: string;
+}
+
+/** What a provider can start in one call: engines of one provider project. */
+export interface RankCheckTarget {
+  externalSiteId: string;
+  externalEngineIds: string[];
+  /** These are every engine of the provider project: one call can start them all. */
+  allEnginesOfSite: boolean;
+}
+
+/** One started (or refused) start call, per engine of the target. */
+export interface RankCheckStartResult {
+  externalEngineId: string;
+  started: boolean;
+  error?: string;
+}
+
+/** The cabinet login a provider needs to start checks, shown in Settings > Rank tracking. */
+export interface RankCabinetMeta {
+  /** ApiKey.provider of the stored login and password, e.g. "labrika-cabinet". */
+  keyProvider: string;
+  name: string;
+  description: string;
+  help: string;
+  helpLink: { href: string; label: string };
+}
+
+/** The default plan of a provider account: what checks cost and how many fit a month. */
+export interface RankProviderBilling {
+  planName: string;
+  planPrice: number;
+  planChecks: number;
+  currency: string;
+  monthlyLimit: number;
 }
 
 export interface RankProvider {
@@ -92,6 +134,19 @@ export interface RankProvider {
   createClient(apiKey: string, opts?: RankProviderClientOptions): RankProviderClient;
   /** Whether the key works. Never throws. */
   testKey(apiKey: string, opts?: RankProviderClientOptions): Promise<boolean>;
+  /** Defaults for the monthly limit and the price per check (Settings can change them). */
+  billing?: RankProviderBilling;
+  /**
+   * Optional: starts a position check now. A provider without it is "manual":
+   * checks run on the provider's own schedule or are started in its cabinet.
+   * Gets one cabinet session per call: log in once, then start every target.
+   */
+  cabinet?: RankCabinetMeta;
+  startCheck?(
+    login: RankCabinetLogin,
+    targets: RankCheckTarget[],
+    opts?: RankProviderClientOptions
+  ): Promise<RankCheckStartResult[]>;
 }
 
 /**

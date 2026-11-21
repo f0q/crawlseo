@@ -1,7 +1,7 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { encrypt } from "@/lib/encryption";
-import { allKeyProviders, apiKeyStatus } from "@/lib/api-keys";
+import { allKeyProviders, apiKeyStatus, isLoginPasswordProvider } from "@/lib/api-keys";
 import { isRankProviderId } from "@/lib/rank-providers/registry";
 
 function isSupportedProvider(value: unknown): value is string {
@@ -40,12 +40,12 @@ export async function POST(req: Request) {
       return Response.json({ error: "Unsupported provider" }, { status: 400 });
     }
 
-    // dataforseo: login + password (Basic Auth style credentials).
+    // dataforseo and the rank providers' cabinet logins (agency fork): login + password.
     // google_pagespeed, bing and the rank providers: a single key string - no login concept.
     let encryptedLogin: string | null;
     let encryptedPassword: string;
 
-    if (body.provider === "dataforseo") {
+    if (isLoginPasswordProvider(body.provider)) {
       if (!body.login || !body.password) {
         return Response.json(
           { error: "Missing required fields: login, password" },

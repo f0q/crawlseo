@@ -27,5 +27,14 @@ export function rankProviderIds(): string[] {
 
 /** What Settings shows, as plain data for client components. */
 export function rankProviderMetas(): RankProviderMeta[] {
-  return PROVIDERS.map((p) => p.meta);
+  return PROVIDERS.map((p) => (p.cabinet && p.startCheck ? { ...p.meta, cabinet: p.cabinet } : p.meta));
+}
+
+/** ApiKey.provider ids of the cabinet logins (login and password) of providers that can start checks. */
+export function cabinetKeyProviders(): string[] {
+  return PROVIDERS.flatMap((p) => (p.cabinet && p.startCheck ? [p.cabinet.keyProvider] : []));
+}
+
+export function isCabinetKeyProvider(id: unknown): id is string {
+  return typeof id === "string" && cabinetKeyProviders().includes(id);
 }

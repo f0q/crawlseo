@@ -1,5 +1,5 @@
 import type { PrismaClient } from "@prisma/client";
-import { rankProviderIds } from "@/lib/rank-providers/registry";
+import { cabinetKeyProviders, rankProviderIds } from "@/lib/rank-providers/registry";
 
 /**
  * Providers with a key stored per user in ApiKey. dataforseo takes a login +
@@ -9,9 +9,18 @@ import { rankProviderIds } from "@/lib/rank-providers/registry";
 export const API_KEY_PROVIDERS = ["dataforseo", "google_pagespeed", "bing"] as const;
 export type ApiKeyProvider = (typeof API_KEY_PROVIDERS)[number];
 
-/** Agency fork: every provider with a stored key, the rank providers (lib/rank-providers) included. */
+/**
+ * Agency fork: every provider with a stored key, the rank providers
+ * (lib/rank-providers) and their cabinet logins (login + password, like
+ * dataforseo) included.
+ */
 export function allKeyProviders(): string[] {
-  return [...API_KEY_PROVIDERS, ...rankProviderIds()];
+  return [...API_KEY_PROVIDERS, ...rankProviderIds(), ...cabinetKeyProviders()];
+}
+
+/** Providers stored as a login and a password; the rest as one key. */
+export function isLoginPasswordProvider(provider: string): boolean {
+  return provider === "dataforseo" || cabinetKeyProviders().includes(provider);
 }
 
 export type ApiKeyStatus = Record<string, { connected: boolean; updatedAt?: string }>;

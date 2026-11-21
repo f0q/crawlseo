@@ -184,17 +184,38 @@ export function RankTrackingSection({
   const [open, setOpen] = useState<string | null>(
     initialOpen && !initialStatus[initialOpen]?.connected ? initialOpen : null
   );
-  const configs: KeyProviderConfig[] = providers.map((p) => ({
-    provider: p.id,
-    name: p.name,
-    description: p.description,
-    icon: TrendingUp,
-    fields: [{ name: "apiKey", label: "API key", type: "password" }],
-    help: p.help,
-    helpLink: p.helpLink,
-    testable: true,
-    disconnectNote: `Every site loses its ${p.name} search engines, and the positions synced from ${p.name} are deleted. Imported and pushed positions stay.`,
-  }));
+  const configs: KeyProviderConfig[] = providers.flatMap((p) => [
+    {
+      provider: p.id,
+      name: p.name,
+      description: p.description,
+      icon: TrendingUp,
+      fields: [{ name: "apiKey", label: "API key", type: "password" }],
+      help: p.help,
+      helpLink: p.helpLink,
+      testable: true,
+      disconnectNote: `Every site loses its ${p.name} search engines, and the positions synced from ${p.name} are deleted. Imported and pushed positions stay.`,
+    },
+    // A provider that can start checks needs its cabinet login for that (project > Rank tracking).
+    ...(p.cabinet
+      ? [
+          {
+            provider: p.cabinet.keyProvider,
+            name: p.cabinet.name,
+            description: p.cabinet.description,
+            icon: TrendingUp,
+            fields: [
+              { name: "login", label: "Email", type: "text" },
+              { name: "password", label: "Password", type: "password" },
+            ],
+            help: p.cabinet.help,
+            helpLink: p.cabinet.helpLink,
+            testable: false,
+            disconnectNote: `Projects with scheduled ${p.name} checks stop starting them; each skipped run is logged as "no cabinet login".`,
+          } satisfies KeyProviderConfig,
+        ]
+      : []),
+  ]);
 
   return (
     <ul className="panel divide-y divide-border-soft">

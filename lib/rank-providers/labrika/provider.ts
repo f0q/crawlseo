@@ -1,10 +1,12 @@
 import type { RankEngineInfo, RankProject, RankProvider, RankProviderClient, RankRow } from "../types";
 import { createLabrikaClient, LABRIKA_MAX_DATES_PER_REQUEST, testLabrikaKey, type LabrikaClientOptions } from "./client";
+import { startLabrikaChecks } from "./cabinet";
 import { LABRIKA_SOURCE, type LabrikaKeywordRow, type LabrikaSite } from "./parse";
 
 /*
  * Labrika as a rank provider: the Labrika Public API, read only. Projects,
- * keywords, regions and checks are set up in Labrika itself.
+ * keywords and regions are set up in Labrika itself. Starting a check needs
+ * the cabinet login (./cabinet.ts), as the Public API cannot start one.
  */
 
 /** One row per keyword and check day Labrika returned; a day without an entry gets none. */
@@ -66,4 +68,14 @@ export const labrikaProvider: RankProvider = {
   maxDatesPerRequest: LABRIKA_MAX_DATES_PER_REQUEST,
   createClient: createLabrikaRankClient,
   testKey: testLabrikaKey,
+  // Business: 5000 checks for 360 RUB per 30 days. 1 check = 1 keyword x 1 engine.
+  billing: { planName: "Business", planPrice: 360, planChecks: 5000, currency: "RUB", monthlyLimit: 5000 },
+  cabinet: {
+    keyProvider: "labrika-cabinet",
+    name: "Labrika cabinet login",
+    description: "The email and password of your Labrika account. Only used to start position checks of projects that have rank checks turned on.",
+    help: "The Public API cannot start a check; crawlseo signs in to the cabinet for that. Use an account that can start checks of your projects.",
+    helpLink: { href: "https://labrika.ru/login", label: "Open Labrika" },
+  },
+  startCheck: startLabrikaChecks,
 };
