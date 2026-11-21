@@ -16,6 +16,7 @@
  * all routes, server actions and the job loop of that process.
  */
 
+import { registerRankChecks } from "@/lib/projects/rank-jobs";
 import { registerRankTracking } from "@/lib/rank-providers/jobs";
 
 const holder = globalThis as unknown as { crawlseoExtensionsRegistered?: boolean };
@@ -26,4 +27,6 @@ export function registerExtensions(): void {
   holder.crawlseoExtensionsRegistered = true;
   // Agency fork: rank tracking (lib/rank-providers), one sync job per site with a daily schedule.
   registerRankTracking();
+  // Agency fork: scheduled rank check starts of client projects with checks turned on (lib/projects/rank.ts).
+  registerRankChecks();
 }

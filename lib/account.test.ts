@@ -227,8 +227,9 @@ describe("deleteAccount", () => {
 
 describe("schema", () => {
   // Every table except Auth.js's VerificationToken, WorkerHeartbeat (one row
-  // per job-processing process) and SchedulerState (the scheduler's own
-  // timestamps), which hold no user data, hangs off User through required
+  // per job-processing process), SchedulerState (the scheduler's own
+  // timestamps) and RankProviderPlan (agency fork: a provider's check limit and
+  // price for the whole instance), which hold no user data, hangs off User through required
   // relations that cascade, so deleting the User deletes it. A new model that
   // does not fails here.
   it("every model cascades from User", () => {
@@ -248,7 +249,7 @@ describe("schema", () => {
           reaches(f.type, seen)
       );
     };
-    const orphans = models.map((m) => m.name).filter((n) => !["VerificationToken", "WorkerHeartbeat", "SchedulerState"].includes(n) && !reaches(n));
+    const orphans = models.map((m) => m.name).filter((n) => !["VerificationToken", "WorkerHeartbeat", "SchedulerState", "RankProviderPlan"].includes(n) && !reaches(n));
     expect(orphans).toEqual([]);
   });
 });

@@ -187,6 +187,12 @@ export async function snapshotUserData(db: PrismaClient): Promise<string> {
     db.projectFile.findMany({ orderBy: { id: "asc" } }),
     db.journalEntry.findMany({ orderBy: { id: "asc" } }),
     db.projectTask.findMany({ orderBy: { id: "asc" } }),
+    db.projectRankSettings.findMany({ orderBy: { projectId: "asc" } }),
+    db.rankCheckRun.findMany({ orderBy: { id: "asc" } }),
+    db.rankProviderPlan.findMany({ orderBy: { provider: "asc" } }),
+    db.projectBudget.findMany({ orderBy: { projectId: "asc" } }),
+    db.budgetPlanLine.findMany({ orderBy: { id: "asc" } }),
+    db.budgetEntry.findMany({ orderBy: { id: "asc" } }),
   ]);
   return JSON.stringify(tables);
 }

@@ -615,6 +615,11 @@ model Project {
   files         ProjectFile[]
   journal       JournalEntry[]
   tasks         ProjectTask[]
+  rankSettings  ProjectRankSettings?
+  rankChecks    RankCheckRun[]
+  budget        ProjectBudget?
+  budgetPlan    BudgetPlanLine[]
+  budgetEntries BudgetEntry[]
 
   @@index([ownerId])
 }
@@ -724,4 +729,96 @@ model ProjectTask {
 
   @@unique([projectId, externalKey])
   @@index([projectId, updatedAt])
+}
+
+// ============ RANK SETTINGS AND BUDGET (agency fork) ============
+
+// When and how a project's positions are checked. No row, or enabled false:
+// nothing is started for the project (docs/agency/rank-settings-and-budget.md).
+model ProjectRankSettings {
+  projectId String   @id
+  enabled   Boolean  @default(false)
+  source    String   @default("none")   // a rank provider id, or "none"
+  frequency String   @default("manual") // weekly | biweekly | monthly | manual
+  engineIds String[] @default([])       // ExternalRankEngine ids of the project's sites that are checked
+  updatedBy String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// The usage log: one row per attempt to start a check of a project, started or not.
+model RankCheckRun {
+  id              String   @id @default(cuid())
+  projectId       String
+  provider        String
+  trigger         String   // schedule | manual
+  status          String   // started | partial | skipped | failed
+  reason          String?  // why skipped or failed: no-cabinet-login, over-limit, no-engines, not-supported, error text
+  engineIds       String[] @default([])
+  details         Json?    // per engine: id, label, keywords, started, error
+  estimatedChecks Int      @default(0) // keywords x engines that were started
+  createdBy       String?
+  createdAt       DateTime @default(now())
+
+  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@index([projectId, createdAt])
+  @@index([provider, createdAt])
+}
+
+// The monthly check limit and the price plan of one rank provider account, for the whole instance.
+model RankProviderPlan {
+  provider     String   @id
+  monthlyLimit Int
+  planName     String
+  planPrice    Decimal  @db.Decimal(14, 2)
+  planChecks   Int
+  currency     String   @default("RUB")
+  updatedBy    String?
+  updatedAt    DateTime @updatedAt
+}
+
+model ProjectBudget {
+  projectId  String   @id
+  currency   String   @default("RUB") // RUB | USD
+  categories String[] @default(["work", "services", "ads", "content", "links", "other"])
+  updatedAt  DateTime @updatedAt
+
+  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+}
+
+// The monthly plan of one category. month "": every month; "YYYY-MM": that month only, over the default.
+model BudgetPlanLine {
+  id        String   @id @default(cuid())
+  projectId String
+  month     String   @default("")
+  category  String
+  amount    Decimal  @db.Decimal(14, 2)
+  updatedAt DateTime @updatedAt
+
+  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, month, category])
+}
+
+// A manual actual cost. Automatic service costs (rank checks) are computed from RankCheckRun, not stored.
+model BudgetEntry {
+  id          String   @id @default(cuid())
+  projectId   String
+  date        DateTime // UTC midnight
+  category    String
+  amount      Decimal  @db.Decimal(14, 2)
+  note        String?
+  externalKey String?  // the caller's own id, so a retry adds nothing twice
+  author      String
+  authorKind  String   @default("human") // human | agent
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+
+  @@unique([projectId, externalKey])
+  @@index([projectId, date])
 }

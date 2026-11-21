@@ -2,7 +2,12 @@ import { ApiError, intParam } from "@/lib/api-v1/params";
 import { projectFor, type Actor } from "./access";
 import { PROJECT_MESSAGES as M } from "./messages";
 import { FILE_CATEGORIES, NOTE_HISTORY, NOTE_KINDS, parseUpdatedSince, TASK_STATUSES, type FileCategory } from "./schema";
+import * as budget from "./budget";
+import { rankUsageSummary, getRankSettings, listRankRuns, startRankCheckNow, updateProviderPlan, updateRankSettings } from "./rank";
+import { monthOf, MONTH_PATTERN } from "./rank-usage";
 import * as svc from "./service";
+import { visibleProjects } from "./access";
+import { db } from "@/lib/db";
 import { MAX_UPLOAD_BYTES } from "./uploads";
 
 /*
@@ -29,6 +34,16 @@ import { MAX_UPLOAD_BYTES } from "./uploads";
  * GET   /projects/{slug}/tasks            ?updatedSince=&status=
  * POST  /projects/{slug}/tasks            upsert by id, or by externalKey
  * PATCH /projects/{slug}/tasks/{id}
+ * GET   /projects/_summary                this month (?month=) of every project: budgets and rank check usage
+ * GET   /projects/{slug}/rank-settings    settings, engines, planned usage, the limit, recent runs
+ * PATCH /projects/{slug}/rank-settings    enabled, source, frequency, engineIds, override
+ * GET   /projects/{slug}/rank-usage       the usage log of a month, ?month=YYYY-MM
+ * GET   /projects/{slug}/budget           ?month=: plan, entries, automatic costs, plan vs actual, history
+ * PATCH /projects/{slug}/budget           currency, categories, plan { month, lines }
+ * POST  /projects/{slug}/budget-entries   date, category, amount, note, externalKey
+ * PATCH /projects/{slug}/budget-entries/{id}
+ * Dashboard only: POST /projects/{slug}/rank-checks (start now), PATCH /projects/_rank-plans
+ * (a provider's limit and price), DELETE /projects/{slug}/budget-entries/{id}.
  */
 
 export type Channel = "api" | "dashboard";
@@ -91,6 +106,13 @@ function json(body: unknown, status = 200): Response {
 
 const notAllowed = () => new ApiError(405, M.errors.method);
 
+function monthParam(params: URLSearchParams): string {
+  const raw = params.get("month");
+  if (!raw) return monthOf(new Date());
+  if (!MONTH_PATTERN.test(raw)) throw new ApiError(400, M.budget.errors.month);
+  return raw;
+}
+
 /** Answers one projects request. Errors are thrown as ApiError for the caller to turn into JSON. */
 export async function routeProjects(
   actor: Actor,
@@ -107,6 +129,19 @@ export async function routeProjects(
   if (slug === undefined) {
     if (method === "GET") return json({ projects: await svc.listProjects(actor, { updatedSince: updatedSince(params) }) });
     if (method === "POST") return json(await svc.createProject(actor, await jsonBody(req)), 201);
+    throw notAllowed();
+  }
+
+  // Not project slugs: a slug cannot start with "_".
+  if (slug === "_summary" && resource === undefined) {
+    if (method !== "GET") throw notAllowed();
+    const month = monthParam(params);
+    const visible = await db.project.findMany({ where: visibleProjects(actor), select: { id: true } });
+    const [budgets, rank] = await Promise.all([budget.budgetSummary(actor, month), rankUsageSummary(db, month, new Set(visible.map((p) => p.id)))]);
+    return json({ month, budget: budgets, rank });
+  }
+  if (slug === "_rank-plans" && resource === undefined) {
+    if (method === "PATCH" && dashboard) return json({ plan: await updateProviderPlan(actor, await jsonBody(req)) });
     throw notAllowed();
   }
 
@@ -173,6 +208,40 @@ export async function routeProjects(
       }
       if (method === "PATCH") return json(await svc.patchTask(actor, slug, id, await jsonBody(req)));
       if (method === "DELETE" && dashboard) return json(await svc.deleteTask(actor, slug, id));
+      throw notAllowed();
+
+    case "rank-settings":
+      if (id !== undefined) break;
+      if (method === "GET") return json(await getRankSettings(actor, slug));
+      if (method === "PATCH") return json(await updateRankSettings(actor, slug, await jsonBody(req)));
+      throw notAllowed();
+
+    case "rank-usage":
+      if (id !== undefined) break;
+      if (method === "GET") return json(await listRankRuns(actor, slug, monthParam(params)));
+      throw notAllowed();
+
+    case "rank-checks":
+      if (!dashboard || id !== undefined) break;
+      if (method === "POST") return json(await startRankCheckNow(actor, slug, await jsonBody(req)), 201);
+      throw notAllowed();
+
+    case "budget":
+      if (id !== undefined) break;
+      if (method === "GET") return json(await budget.getBudget(actor, slug, monthParam(params)));
+      if (method === "PATCH") return json(await budget.updateBudget(actor, slug, await jsonBody(req)));
+      throw notAllowed();
+
+    case "budget-entries":
+      if (id === undefined) {
+        if (method === "POST") {
+          const r = await budget.addBudgetEntry(actor, slug, await jsonBody(req));
+          return json(r, r.created ? 201 : 200);
+        }
+        throw notAllowed();
+      }
+      if (method === "PATCH") return json(await budget.patchBudgetEntry(actor, slug, id, await jsonBody(req)));
+      if (method === "DELETE" && dashboard) return json(await budget.deleteBudgetEntry(actor, slug, id));
       throw notAllowed();
 
     case "members":

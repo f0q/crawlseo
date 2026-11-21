@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { PROJECT_MESSAGES as M } from "./messages";
 import { findSecret } from "./secrets";
+import { BUDGET_CURRENCIES, MONTH_PATTERN, RANK_FREQUENCIES } from "./rank-usage";
 
 /*
  * The shapes of client projects (agency fork) and what the API and the forms
@@ -195,3 +196,61 @@ export function parseUpdatedSince(raw: string | null): Date | undefined | null {
   const d = new Date(value);
   return Number.isNaN(d.getTime()) ? null : d;
 }
+
+// ============ RANK SETTINGS AND BUDGET ============
+
+export const rankSettingsSchema = z.object({
+  enabled: z.boolean().optional(),
+  source: z.string().trim().min(1).max(40).optional(),
+  frequency: z.enum(RANK_FREQUENCIES).optional(),
+  engineIds: z.array(z.string().min(1).max(40)).max(200).optional(),
+  /** Save even when the planned checks go over the provider's monthly limit. */
+  override: z.boolean().optional(),
+});
+export type RankSettingsInput = z.input<typeof rankSettingsSchema>;
+
+const amount = z.number().finite().min(-1e10).max(1e10);
+const month = z.string().regex(MONTH_PATTERN, M.budget.errors.month);
+
+/** A budget category: a short word, e.g. "links" or "seo-tools". */
+export const categorySchema = z
+  .string()
+  .trim()
+  .toLowerCase()
+  .regex(/^[\p{L}\p{N}][\p{L}\p{N} _-]{0,39}$/u, M.budget.errors.category);
+
+export const budgetSchema = z.object({
+  currency: z.enum(BUDGET_CURRENCIES).optional(),
+  categories: z.array(categorySchema).min(1).max(20).optional(),
+  /** month null or absent: the default of every month; "YYYY-MM": that month over the default. null amount: remove the line. */
+  plan: z
+    .object({
+      month: month.nullish(),
+      lines: z.record(z.string(), z.number().finite().min(0).max(1e10).nullable()),
+    })
+    .optional(),
+});
+export type BudgetInput = z.input<typeof budgetSchema>;
+
+export const budgetEntrySchema = z.object({
+  date: day.optional(),
+  category: categorySchema,
+  amount: amount.refine((n) => n !== 0, M.budget.errors.amountZero),
+  note: z.string().trim().max(500).nullish().transform((v) => (v ? v : null)),
+  /** The caller's own id: the same key again updates that entry instead of adding one. */
+  externalKey: z.string().trim().min(1).max(100).optional(),
+});
+export type BudgetEntryInput = z.input<typeof budgetEntrySchema>;
+
+export const patchBudgetEntrySchema = budgetEntrySchema.omit({ externalKey: true }).partial();
+
+export const providerPlanSchema = z.object({
+  provider: z.string().min(1).max(40),
+  monthlyLimit: z.number().int().min(0).max(100_000_000),
+  planName: z.string().trim().min(1).max(60),
+  planPrice: z.number().finite().min(0).max(1e9),
+  planChecks: z.number().int().min(1).max(100_000_000),
+  currency: z.enum(BUDGET_CURRENCIES),
+});
+
+export { month as monthSchema };
