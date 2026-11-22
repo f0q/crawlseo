@@ -8,8 +8,8 @@ import { formatDay } from "@/lib/format";
 import { Logo } from "@/components/brand/logo";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { CloudPromo } from "@/components/layout/cloud-promo";
-import { SiteSwitcher } from "@/components/sites/site-switcher";
-import { ALL_SITES_HREF } from "@/lib/site-routes";
+import { ProjectSwitcher } from "@/components/projects/project-switcher";
+import type { ProjectNav } from "@/lib/projects/navigation";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { AvailableUpdate } from "@/lib/update-check";
 import { PanelLeftClose, PanelLeftOpen, Menu, X } from "lucide-react";
@@ -27,7 +27,14 @@ type AppShellProps = {
   children: React.ReactNode;
   sites: ShellSite[];
   showCloudPromo: boolean;
+  /** Agency fork: the project switcher's data; without it every site is listed as one without a project. */
+  projectNav?: ProjectNav;
+  /** Agency fork: false hides the Research group of a site (DataForSEO not connected). */
+  research?: boolean;
 };
+
+/** Agency fork: the home is the projects page (lib/projects). */
+const HOME_HREF = "/projects";
 
 const COLLAPSED_KEY = "crawlseo-sidebar-collapsed";
 
@@ -48,8 +55,9 @@ function readCollapsed() {
   }
 }
 
-export function AppShell({ email, name, image, version, update, children, sites, showCloudPromo }: AppShellProps) {
+export function AppShell({ email, name, image, version, update, children, sites, showCloudPromo, projectNav, research }: AppShellProps) {
   const pathname = usePathname();
+  const nav = projectNav ?? { groups: [], unassigned: sites.map(({ id, domain }) => ({ id, domain })) };
 
   // The mobile drawer is open only on the path it was opened on, so a route change closes it.
   const [openOnPath, setOpenOnPath] = useState<string | null>(null);
@@ -83,7 +91,7 @@ export function AppShell({ email, name, image, version, update, children, sites,
       <div className="flex flex-col gap-3.5">
         <div className={cn("flex items-center", collapsed ? "flex-col gap-3" : "justify-between")}>
           <Link
-            href={ALL_SITES_HREF}
+            href={HOME_HREF}
             aria-label="crawlseo"
             className={cn("flex h-8 items-center text-text-strong", !collapsed && "px-2.5")}
           >
@@ -103,10 +111,10 @@ export function AppShell({ email, name, image, version, update, children, sites,
             )}
           </button>
         </div>
-        <SiteSwitcher sites={sites} collapsed={collapsed} />
+        <ProjectSwitcher nav={nav} collapsed={collapsed} />
       </div>
 
-      <SidebarNav sites={sites} collapsed={collapsed} />
+      <SidebarNav sites={sites} collapsed={collapsed} projectNav={nav} research={research} />
 
       <div className="mt-auto flex flex-col gap-3">
         {showCloudPromo && !collapsed && <CloudPromo />}
@@ -171,7 +179,7 @@ export function AppShell({ email, name, image, version, update, children, sites,
         {/* Mobile top bar */}
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-bg px-3 md:hidden">
           <Link
-            href={ALL_SITES_HREF}
+            href={HOME_HREF}
             aria-label="crawlseo"
             className="flex h-11 items-center px-2 text-text-strong"
           >

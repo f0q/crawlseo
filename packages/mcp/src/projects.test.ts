@@ -53,6 +53,7 @@ describe("project MCP tools", () => {
     const before = await snapshotUserData(db);
     for (const [name, args] of [
       ["create_project", { name: "Nope" }],
+      ["update_project", { slug: "quilltab", group: "Nope" }],
       ["upsert_note", { slug: "quilltab", title: "x", body: "y" }],
       ["add_journal_entry", { slug: "quilltab", text: "x" }],
       ["upsert_task", { slug: "quilltab", title: "x" }],
@@ -89,6 +90,19 @@ describe("project MCP tools", () => {
     expect(read.text).toMatch(/Project Acme[\s\S]*ACME_SSH_KEY[\s\S]*acme-books\.com[\s\S]*\[brief\] Brief \(id \S+, version 2[\s\S]*Books for kids, Moscow[\s\S]*\[doing\] Express audit \(id \S+, key presale-1[\s\S]*2026-11-20 Set up the project \[seo-agent\]/);
     expect((await call(client, "list_projects", {})).text).toMatch(/2 project\(s\)[\s\S]*Acme/);
     expect((await call(client, "get_project", { slug: "secret-b" })).text).toBe("Project not found");
+    await client.close();
+  });
+
+  it("create_project and update_project set the group, and list_projects and get_project show it", async () => {
+    const client = await connect(f.keyAWrite);
+    expect((await call(client, "create_project", { name: "Italica", group: "Centro Adelante" })).text).toBe("Created project Italica (slug: italica) with 0 site(s).");
+    expect((await call(client, "list_projects", {})).text).toMatch(/Italica\s+\(slug: italica, client, your role: owner\)\n\s+Group: Centro Adelante/);
+    const updated = await call(client, "update_project", { slug: "italica", group: "Adelante", status: "prospect" });
+    expect(updated.isError, updated.text).toBe(false);
+    expect(updated.text).toMatch(/^Updated project Italica \(slug: italica\)\.\nStatus: prospect[\s\S]*Group: Adelante/);
+    expect((await call(client, "get_project", { slug: "italica" })).text).toMatch(/Group: Adelante/);
+    expect((await call(client, "update_project", { slug: "italica", group: null })).text).not.toMatch(/Group:/);
+    expect((await call(client, "update_project", { slug: "secret-b", group: "x" })).text).toBe("Project not found");
     await client.close();
   });
 

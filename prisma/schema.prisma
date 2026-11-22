@@ -603,6 +603,7 @@ model Project {
   slug          String   @unique // a-z, 0-9 and -, used in URLs and by the agent sync
   name          String
   status        String   @default("client") // client | prospect | paused | archived
+  group         String? // agency fork: free text; projects with the same group are listed together
   testUrl       String?
   geo           String?
   language      String?

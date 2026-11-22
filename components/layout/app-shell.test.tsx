@@ -29,6 +29,8 @@ function render(props: {
   image?: string | null;
   update?: { version: string; url: string } | null;
   sites?: typeof SITES;
+  projectNav?: import("@/lib/projects/navigation").ProjectNav;
+  research?: boolean;
 }) {
   return renderToStaticMarkup(
     <AppShell {...props} version={APP_VERSION} sites={props.sites ?? []} showCloudPromo={false}>
@@ -79,35 +81,64 @@ describe("sidebar footer", () => {
 });
 
 describe("sidebar home and workspace switcher", () => {
-  it("has no Dashboard or Sites items and the logo leads to All sites", () => {
+  // Agency fork (UX step 1): the logo leads to /projects and the switcher is the project switcher.
+  it("has no Dashboard or Sites items and the logo leads to Projects", () => {
     nav.pathname = "/sites";
     const html = render({ name: "Mike", sites: SITES });
     expect(html).not.toContain("/dashboard");
     expect(html).not.toContain(">Dashboard<");
-    expect(html).toMatch(/<a href="\/sites" aria-label="crawlseo"|<a aria-label="crawlseo"[^>]*href="\/sites"/);
+    expect(html).toMatch(/<a href="\/projects" aria-label="crawlseo"|<a aria-label="crawlseo"[^>]*href="\/projects"/);
+    expect(html).not.toMatch(/aria-label="crawlseo"[^>]*href="\/sites"|href="\/sites" aria-label="crawlseo"/);
   });
 
-  it("shows All sites in the switcher and no site groups on the home", () => {
+  it("shows All projects in the switcher, a Projects item and no site groups on the home", () => {
     nav.pathname = "/sites";
     const html = render({ name: "Mike", sites: SITES });
-    expect(html).toContain('aria-label="Workspace: All sites"');
+    expect(html).toContain('aria-label="Project: All projects"');
+    expect(html).toContain('href="/projects"');
+    expect(html).not.toContain(">Clients<");
     expect(html).not.toContain(">Workspace<");
     expect(html).not.toContain(">Research<");
   });
 
-  it("shows the switcher with no sites too, so Add site is always one click away", () => {
+  it("shows the switcher with no sites too", () => {
     nav.pathname = "/sites";
-    expect(render({ name: "Mike" })).toContain('aria-label="Workspace: All sites"');
+    expect(render({ name: "Mike" })).toContain('aria-label="Project: All projects"');
   });
 
-  it("shows the domain in its own case and the Workspace and Research groups on a site", () => {
+  it("names the site group after the domain, in its own case, with Research and without AI & MCP", () => {
     nav.pathname = "/sites/site-a/keywords";
     const html = render({ name: "Mike", sites: SITES });
-    expect(html).toContain('aria-label="Workspace: Alpha.example"');
+    // Without project data, every site counts as one without a project.
+    expect(html).toContain('aria-label="Project: Sites without a project"');
     expect(html).toContain(">Alpha.example<");
-    expect(html).toContain(">Workspace<");
+    expect(html).not.toContain(">Workspace<");
     expect(html).toContain(">Research<");
     expect(html).toContain('href="/sites/site-a/keywords"');
+    expect(html).not.toContain('href="/sites/site-a/mcp"');
+    expect(render({ name: "Mike", sites: SITES, research: false })).not.toContain(">Research<");
+  });
+
+  it("on a site of a project: the project in the switcher, the way back to it and a picker of its sites", () => {
+    const projectNav = {
+      groups: [{ name: "Group", projects: [{ slug: "one", name: "One", status: "client", group: "Group", sites: SITES.map(({ id, domain }) => ({ id, domain })) }] }],
+      unassigned: [],
+    };
+    nav.pathname = "/sites/site-a/keywords";
+    const html = render({ name: "Mike", sites: SITES, projectNav });
+    expect(html).toContain('aria-label="Project: One"');
+    expect(html).toContain('href="/projects/one"');
+    expect(html).toContain(">Back to One<");
+    expect(html).toContain('aria-label="Site: Alpha.example"');
+
+    // A project with one site shows it as a plain link; the project page has no way back line.
+    const single = { ...projectNav, groups: [{ ...projectNav.groups[0], projects: [{ ...projectNav.groups[0].projects[0], sites: [{ id: "site-a", domain: "Alpha.example" }] }] }] };
+    nav.pathname = "/projects/one";
+    const onProject = render({ name: "Mike", sites: SITES, projectNav: single });
+    expect(onProject).toContain('aria-label="Project: One"');
+    expect(onProject).toMatch(/href="\/sites\/site-a"><svg[^]*?>Alpha\.example<\/span><\/a>/);
+    expect(onProject).not.toContain('aria-label="Site: ');
+    expect(onProject).not.toContain("Back to One");
   });
 
   it("shows a compact square with the site's first letter when collapsed", () => {

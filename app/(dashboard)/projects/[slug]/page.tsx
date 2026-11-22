@@ -23,13 +23,16 @@ import { BudgetSection } from "@/components/projects/budget-section";
 import { RankSettingsSection } from "@/components/projects/rank-settings-section";
 import { StatusBadge } from "@/components/projects/ui";
 import { YandexProjectCards, yandexProjectSites } from "@/components/yandex/project-cards";
+import { OverviewSection } from "@/components/projects/overview-section";
+import { projectOverview } from "@/lib/projects/overview";
 
-const TABS = ["passport", "brief", "sites", "tasks", "journal", "rank", "budget"] as const;
+// Agency fork UX step 1: Overview first and by default, the daily tabs next, the set-and-forget ones last.
+const TABS = ["overview", "tasks", "journal", "sites", "rank", "budget", "passport", "brief"] as const;
 type Tab = (typeof TABS)[number];
 
 const iso = (d: Date) => d.toISOString();
 
-/** Agency fork: one client project, in tabs: passport, brief and materials, sites, tasks, journal. */
+/** Agency fork: one client project, in tabs: overview (the default), tasks, journal, sites, rank tracking, budget, passport, brief and materials. */
 export default async function ProjectPage({
   params,
   searchParams,
@@ -51,10 +54,12 @@ export default async function ProjectPage({
   }
   const { project, sites, members } = detail;
   const canEdit = atLeast(project.role, "editor");
-  const tab: Tab = (TABS as readonly string[]).includes(String(query.tab)) ? (query.tab as Tab) : "passport";
+  const tab: Tab = (TABS as readonly string[]).includes(String(query.tab)) ? (query.tab as Tab) : "overview";
 
   let body: React.ReactNode;
-  if (tab === "passport") {
+  if (tab === "overview") {
+    body = <OverviewSection slug={slug} data={await projectOverview(actor, slug)} />;
+  } else if (tab === "passport") {
     body = (
       <div className="flex flex-col gap-5">
         <div className="panel p-5">
@@ -124,7 +129,7 @@ export default async function ProjectPage({
         {TABS.map((t) => (
           <Link
             key={t}
-            href={t === "passport" ? `/projects/${slug}` : `/projects/${slug}?tab=${t}`}
+            href={t === "overview" ? `/projects/${slug}` : `/projects/${slug}?tab=${t}`}
             aria-current={t === tab ? "page" : undefined}
             className={cn(
               "-mb-px border-b-2 px-3 py-2 text-[14px] whitespace-nowrap transition-colors",

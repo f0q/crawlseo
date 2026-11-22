@@ -14,15 +14,16 @@ import {
   Bell,
   Settings,
   Bookmark,
-  Bot,
   Link as LinkIcon,
   SearchCheck,
   TrendingUp,
   FolderKanban,
   BarChart3,
+  ChevronLeft,
   type LucideIcon,
 } from "lucide-react";
 import { PROJECT_MESSAGES } from "@/lib/projects/messages";
+import { switcherView, type ProjectNav } from "@/lib/projects/navigation";
 import { YANDEX_UI } from "@/lib/yandex/messages";
 
 type NavItem = {
@@ -33,25 +34,34 @@ type NavItem = {
 };
 
 type NavGroup = {
-  label: string;
+  /** Agency fork: a group without a label shows only its items. */
+  label: string | null;
   items: NavItem[];
 };
 
 export function SidebarNav({
   sites,
   collapsed = false,
+  projectNav,
+  research = true,
 }: {
   sites: { id: string; domain: string }[];
   collapsed?: boolean;
+  /** Agency fork: the project of the open site, for the way back to it (lib/projects/navigation). */
+  projectNav?: ProjectNav;
+  /** Agency fork: false hides the Research group (DataForSEO not connected). */
+  research?: boolean;
 }) {
   const pathname = usePathname();
   const match = pathname.match(/\/sites\/([^/]+)/);
   const activeSiteId =
     match?.[1] && sites.some((s) => s.id === match[1]) ? match[1] : undefined;
+  const project = activeSiteId && projectNav ? switcherView(pathname, projectNav).project : null;
 
   const workspaceNav: NavGroup | null = activeSiteId
     ? {
-        label: "Workspace",
+        // Agency fork: the group is named after the site, not "Workspace".
+        label: sites.find((s) => s.id === activeSiteId)?.domain ?? "Workspace",
         items: [
           { href: `/sites/${activeSiteId}`, label: "Overview", icon: LayoutDashboard, exact: true },
           { href: `/sites/${activeSiteId}/keywords`, label: "Keywords", icon: Search },
@@ -69,7 +79,7 @@ export function SidebarNav({
       }
     : null;
 
-  const researchNav: NavGroup | null = activeSiteId
+  const researchNav: NavGroup | null = activeSiteId && research
     ? {
         label: "Research",
         items: [
@@ -84,16 +94,21 @@ export function SidebarNav({
     ? {
         label: "Connect",
         items: [
-          { href: `/sites/${activeSiteId}/mcp`, label: "AI & MCP", icon: Bot },
+          // Agency fork: AI & MCP (/sites/[id]/mcp) is left out of the menu; Settings > MCP has it.
           { href: `/sites/${activeSiteId}/settings`, label: "Site settings", icon: Settings },
         ],
       }
     : null;
 
-  // Agency fork: client projects (lib/projects), on every page.
+  // Agency fork: client projects (lib/projects), on every page; on a site, the way back to its project first.
   const projectsNav: NavGroup = {
-    label: PROJECT_MESSAGES.nav.group,
-    items: [{ href: "/projects", label: PROJECT_MESSAGES.nav.projects, icon: FolderKanban }],
+    label: null,
+    items: [
+      ...(project
+        ? [{ href: `/projects/${project.slug}`, label: PROJECT_MESSAGES.nav.backToProject(project.name), icon: ChevronLeft, exact: true }]
+        : []),
+      { href: "/projects", label: PROJECT_MESSAGES.nav.projects, icon: FolderKanban, exact: !!project },
+    ],
   };
 
   // The home (All sites, or any page outside a site) has no site groups: the
@@ -106,9 +121,9 @@ export function SidebarNav({
 
   return (
     <nav aria-label="Main" className={cn("flex flex-col gap-[22px]", collapsed && "items-center")}>
-      {groups.map((group) => (
-        <div key={group.label} className="flex flex-col gap-0.5">
-          {!collapsed && (
+      {groups.map((group, i) => (
+        <div key={group.label ?? i} className="flex flex-col gap-0.5">
+          {!collapsed && group.label && (
             <p className="px-2.5 pb-1.5 text-[12px] leading-4 text-muted-foreground">
               {group.label}
             </p>

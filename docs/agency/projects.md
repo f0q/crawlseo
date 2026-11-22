@@ -5,9 +5,12 @@ tasks and a journal of the work. It sits above sites. The code is in
 `lib/projects/`, the pages in `app/(dashboard)/projects/`, the components in
 `components/projects/`, every UI string in `lib/projects/messages.ts`.
 
-After sign-in, `/` and the login page lead to `/projects`. The All sites view
-stays at `/sites` (a button on the projects page, the logo and the workspace
-switcher).
+After sign-in, `/` and the login page lead to `/projects`, and so does the
+logo. A project is the only top-level entity of the interface: the sidebar has
+a project switcher, a project opens on its Overview, and every site page shows
+its project. `/sites` and every site route still work by link; on `/projects`
+the link to All sites stays while some of your sites are in no project. See
+[navigation.md](navigation.md).
 
 ## Model
 
@@ -15,7 +18,7 @@ Migration `20261122000000_agency_projects`.
 
 | Table | What it holds |
 | --- | --- |
-| `Project` | `slug` (unique, a-z 0-9 -), `name`, `status` (`client`, `prospect`, `paused`, `archived`), `testUrl`, `geo`, `language`, `searchEngines[]`, `cms`, `hosting`, `contacts`, `accessNotes`, `ownerId` (the creator) |
+| `Project` | `slug` (unique, a-z 0-9 -), `name`, `status` (`client`, `prospect`, `paused`, `archived`), `group` (optional free text, up to 80 characters: projects with the same group are listed together; migration `20261125000000_agency_project_group`), `testUrl`, `geo`, `language`, `searchEngines[]`, `cms`, `hosting`, `contacts`, `accessNotes`, `ownerId` (the creator) |
 | `Membership` | user, project, `role`: `owner`, `editor` or `viewer` |
 | `Site.projectId` | nullable. A site without a project works as before |
 | `ProjectNote` | `kind` (`brief`, `audience`, `chat`, `strategy`, `other`), `title`, `body` (markdown), `version`, `updatedBy`. Unique per project by kind and title |
@@ -78,7 +81,7 @@ The same routes (`lib/projects/http.ts`) serve two callers:
 | GET | `/projects` | `?updatedSince=`: projects where anything changed since then. Each with `role`, `sites`, `openTasks`, `lastJournal` |
 | POST | `/projects` | create: `name`, optional `slug` (else from the name or the first domain), `status`, passport fields, `domains[]`. The caller becomes owner. 409 if the slug is taken |
 | GET | `/projects/{slug}` | `project` (with `role`), `sites` (with `yours`), `members`, `counts` |
-| PATCH | `/projects/{slug}` | any passport field; `""` or `null` clears one |
+| PATCH | `/projects/{slug}` | any passport field, `group` included; `""` or `null` clears one |
 | GET | `/projects/{slug}/notes` | `?updatedSince=&kind=`, with bodies |
 | POST | `/projects/{slug}/notes` | upsert: by `id`, else by `kind` + `title`. `baseVersion` refuses with 409 when the note changed since. Unchanged content writes no version (`changed: false`) |
 | GET | `/projects/{slug}/notes/{id}` | the note with `versions`, newest first, `?history=` (0 to 20) |
@@ -123,7 +126,8 @@ curl -s -X POST -H "Authorization: Bearer $CRAWLSEO_KEY" \
 | --- | --- |
 | `list_projects` | read: projects with slug, status, role, sites, open tasks, the latest journal entry; `updatedSince` |
 | `get_project` | read: passport, sites, members, every note with its text, open tasks, the latest journal entries, files with their download path |
-| `create_project` | write: a project with you as owner, and its domains as your sites |
+| `create_project` | write: a project with you as owner, and its domains as your sites; `group` optional |
+| `update_project` | write: passport fields of a project (only those passed; `null` clears one), e.g. its `group` |
 | `upsert_note` | write: create or update a note, by id or by kind and title, with `baseVersion` |
 | `add_journal_entry` | write: a journal line; a repeat is not added twice |
 | `upsert_task` | write: create or update a task, by id or `externalKey` |

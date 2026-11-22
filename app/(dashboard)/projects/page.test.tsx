@@ -46,20 +46,35 @@ const page = async (tab?: string, slug = "quilltab") =>
   renderToString(await ProjectPage({ params: Promise.resolve({ slug }), searchParams: Promise.resolve(tab ? { tab } : {}) }));
 
 describe("projects pages", () => {
-  it("lists the user's projects with status, domains, open tasks and the last journal entry, and links to All sites", async () => {
+  it("lists the user's projects with status, domains, open tasks and the last journal entry", async () => {
     holder.user = { id: "user-a", email: "a@quilltab.app" };
     const html = renderToString(await ProjectsPage());
     expect(html).toContain("Quilltab");
     expect(html).toContain("quilltab.app");
     expect(html).toContain("1 open task");
     expect(html).toContain("Audited the titles");
-    expect(html).toContain('href="/sites"');
+    // Agency fork UX step 1: no All sites button while every site is in a project.
+    expect(html).not.toContain('href="/sites"');
+    expect(html).not.toContain("Sites without a project");
     expect(html).not.toContain("Secret B");
     expect(html).toMatch(/Budgets this month[\s\S]*0 of 0 RUB[\s\S]*Labrika: 0 checks a month planned, 0 started this month, limit 5000/);
   });
 
-  it("renders every tab of a project", async () => {
-    expect(await page()).toMatch(/Passport[\s\S]*QUILLTAB_PANEL_PASS[\s\S]*Members[\s\S]*Delete project/);
+  it("groups projects by group and lists the user's sites outside every project", async () => {
+    holder.user = { id: "user-a", email: "a@quilltab.app" };
+    await t.db.project.create({ data: { id: "proj-g", slug: "grouped", name: "Grouped one", group: "Centro Adelante", ownerId: "user-a", members: { create: { userId: "user-a", role: "owner" } } } });
+    await t.db.site.create({ data: { id: "site-orphan", userId: "user-a", domain: "orphan.example" } });
+    const html = renderToString(await ProjectsPage());
+    expect(html).toMatch(/Centro Adelante[\s\S]*Grouped one[\s\S]*Other projects[\s\S]*Quilltab[\s\S]*Sites without a project[\s\S]*href="\/sites\/site-orphan"/);
+    expect(html).toContain('href="/sites"');
+    await t.db.site.delete({ where: { id: "site-orphan" } });
+    await t.db.project.delete({ where: { id: "proj-g" } });
+  });
+
+  it("renders every tab of a project, the Overview by default", async () => {
+    expect(await page()).toMatch(/aria-current="page"[^>]*>Overview<[\s\S]*Last 28 days[\s\S]*quilltab\.app[\s\S]*Clicks[\s\S]*Visits from Yandex search[\s\S]*Rank tracking[\s\S]*Off[\s\S]*Tasks \(1 open\)[\s\S]*Fix titles[\s\S]*Audited the titles/);
+    expect(await page("overview")).toContain("Last 28 days");
+    expect(await page("passport")).toMatch(/Passport[\s\S]*QUILLTAB_PANEL_PASS[\s\S]*Members[\s\S]*Delete project/);
     expect(await page("brief")).toMatch(/Grow organic sign-ups[\s\S]*Files/);
     expect(await page("sites")).toMatch(/quilltab\.app[\s\S]*Remove from project[\s\S]*Visits from Yandex search[\s\S]*SQI/);
     expect(await page("tasks")).toContain("Fix titles");
@@ -70,7 +85,8 @@ describe("projects pages", () => {
 
   it("is read-only for a viewer, and another user's project is not found", async () => {
     holder.user = { id: "user-v", email: "v@quilltab.app" };
-    const html = await page();
+    expect(await page()).toContain("Only the owner of this site sees its numbers.");
+    const html = await page("passport");
     expect(html).toContain("You can view this project");
     expect(html).not.toContain("Delete project");
     expect(await page("tasks")).not.toContain("Add task");

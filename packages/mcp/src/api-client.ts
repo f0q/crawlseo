@@ -10,6 +10,8 @@ export type Query = Record<string, string | number | undefined>;
 export interface ApiClient {
   get<T>(path: string, query?: Query): Promise<T>;
   post<T>(path: string, body: unknown): Promise<T>;
+  /** Agency fork: PATCH, for update_project. */
+  patch<T>(path: string, body: unknown): Promise<T>;
 }
 
 /** A request the instance refused or could not answer. The message is safe to show to the agent. */
@@ -35,7 +37,7 @@ export type ApiClientOptions = {
 export function createApiClient(opts: ApiClientOptions): ApiClient {
   const base = opts.baseUrl.replace(/\/+$/, "");
   const send = opts.fetch ?? ((req: Request) => fetch(req));
-  async function send_<T>(method: "GET" | "POST", url: URL, body?: unknown): Promise<T> {
+  async function send_<T>(method: "GET" | "POST" | "PATCH", url: URL, body?: unknown): Promise<T> {
     let res: Response;
     try {
       res = await send(
@@ -72,6 +74,9 @@ export function createApiClient(opts: ApiClientOptions): ApiClient {
     },
     post<T>(path: string, body: unknown): Promise<T> {
       return send_<T>("POST", new URL(`${base}/api/v1${path}`), body);
+    },
+    patch<T>(path: string, body: unknown): Promise<T> {
+      return send_<T>("PATCH", new URL(`${base}/api/v1${path}`), body);
     },
   };
 }

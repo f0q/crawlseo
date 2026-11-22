@@ -1,8 +1,8 @@
 /**
  * The client project tools of the agency fork, through /api/v1/projects like
  * every other tool: list_projects and get_project read; create_project,
- * upsert_note, add_journal_entry and upsert_task write and need a key with
- * the write scope. The key sees the projects its user is a member of.
+ * update_project, upsert_note, add_journal_entry and upsert_task write and
+ * need a key with the write scope. The key sees the projects its user is a member of.
  */
 
 import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
@@ -12,12 +12,13 @@ import { z } from "zod";
 import type { ApiClient } from "./api-client";
 
 export const PROJECT_TOOL_NAMES = ["list_projects", "get_project", "get_project_budget", "get_rank_usage"] as const;
-export const PROJECT_WRITE_TOOL_NAMES = ["create_project", "upsert_note", "add_journal_entry", "upsert_task", "add_budget_entry"] as const;
+export const PROJECT_WRITE_TOOL_NAMES = ["create_project", "update_project", "upsert_note", "add_journal_entry", "upsert_task", "add_budget_entry"] as const;
 
 type Passport = {
   slug: string;
   name: string;
   status: string;
+  group?: string | null;
   testUrl: string | null;
   geo: string | null;
   language: string | null;
@@ -84,6 +85,7 @@ function passportLines(p: Passport): string {
   const rows: [string, string | null][] = [
     ["Status", p.status],
     ["Your role", p.role],
+    ["Group", p.group ?? null],
     ["Test site", p.testUrl],
     ["Geo", p.geo],
     ["Language", p.language],
@@ -101,6 +103,7 @@ export function formatProjects(projects: Summary[]): string {
   const lines = projects.map(
     (p) =>
       `${p.name}  (slug: ${p.slug}, ${p.status}, your role: ${p.role})` +
+      (p.group ? `\n  Group: ${p.group}` : "") +
       `\n  Sites: ${p.sites.map((s) => `${s.domain} (${s.id})`).join(", ") || "none"}` +
       `\n  Open tasks: ${p.openTasks}  |  Updated: ${p.updatedAt}` +
       (p.lastJournal ? `\n  Last journal entry: ${p.lastJournal.date} ${cut(p.lastJournal.text, 120)}` : "")
@@ -242,6 +245,7 @@ export function registerProjectTools(
         name: z.string().min(1).max(120),
         slug: z.string().optional().describe("2 to 48 of a-z, 0-9 and -. Default: made from the name or the first domain"),
         status: z.enum(["client", "prospect", "paused", "archived"]).optional().default("client"),
+        group: z.string().max(80).optional().describe('Projects with the same group are listed together, e.g. "Centro Adelante"'),
         domains: z.array(z.string()).max(20).optional().default([]).describe('Domains of the project, e.g. ["example.com"]'),
         testUrl: z.string().optional().describe("The test copy of the site, an http(s) URL"),
         geo: z.string().optional(),
@@ -258,6 +262,35 @@ export function registerProjectTools(
       run(async () => {
         const d = await api.post<Detail>("/projects", args);
         return `Created project ${d.project.name} (slug: ${d.project.slug}) with ${d.sites.length} site(s)${d.sites.length ? `: ${d.sites.map((s) => s.domain).join(", ")}` : ""}.`;
+      })
+  );
+
+  server.registerTool(
+    "update_project",
+    {
+      title: "Update project",
+      description:
+        "Changes passport fields of a client project: only the fields you pass; null or \"\" clears one. group lists projects with the same group together. accessNotes holds only where access lives, never a secret. Needs a key with the write scope and the editor role.",
+      inputSchema: {
+        slug,
+        name: z.string().min(1).max(120).optional(),
+        status: z.enum(["client", "prospect", "paused", "archived"]).optional(),
+        group: z.string().max(80).nullable().optional().describe('e.g. "Centro Adelante"; null clears it'),
+        testUrl: z.string().nullable().optional(),
+        geo: z.string().nullable().optional(),
+        language: z.string().nullable().optional(),
+        searchEngines: z.array(z.string()).max(10).optional(),
+        cms: z.string().nullable().optional(),
+        hosting: z.string().nullable().optional(),
+        contacts: z.string().nullable().optional(),
+        accessNotes: z.string().nullable().optional(),
+      },
+      annotations: UPSERT,
+    },
+    ({ slug, ...fields }) =>
+      run(async () => {
+        const d = await api.patch<Detail>(P(slug), fields);
+        return `Updated project ${d.project.name} (slug: ${d.project.slug}).\n${passportLines(d.project)}`;
       })
   );
 

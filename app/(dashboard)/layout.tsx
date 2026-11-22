@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/layout/app-shell";
 import { APP_VERSION } from "@/lib/version";
 import { availableUpdate } from "@/lib/update-check";
+import { loadShellExtras } from "@/lib/projects/shell";
 
 export default async function DashboardLayout({
   children,
@@ -30,6 +31,8 @@ export default async function DashboardLayout({
         _max: { date: true },
       })
     : [];
+  // Agency fork: the project switcher and whether DataForSEO is connected (lib/projects/shell.ts).
+  const extras = await loadShellExtras(session.user);
   const dataThrough = Object.fromEntries(
     latest.map((row) => [row.siteId, row._max.date?.toISOString().slice(0, 10) ?? null])
   );
@@ -43,6 +46,7 @@ export default async function DashboardLayout({
       update={availableUpdate()}
       sites={sites.map((s) => ({ ...s, dataThrough: dataThrough[s.id] ?? null }))}
       showCloudPromo={process.env.CRAWLSEO_HIDE_CLOUD_PROMO?.trim().toLowerCase() !== "true"}
+      {...extras}
     >
       {children}
     </AppShell>

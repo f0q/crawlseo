@@ -58,6 +58,7 @@ const PASSPORT = {
   slug: true,
   name: true,
   status: true,
+  group: true,
   testUrl: true,
   geo: true,
   language: true,

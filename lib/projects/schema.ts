@@ -86,6 +86,8 @@ export const accessNotesSchema = text(4000).superRefine((value, ctx) => {
 const passportShape = {
   name: z.string().trim().min(1, M.errors.nameEmpty).max(120),
   status: z.enum(PROJECT_STATUSES),
+  /** Projects with the same group are listed together, e.g. one client with several projects. */
+  group: text(80),
   testUrl: httpUrl(500),
   geo: text(200),
   language: text(100),

@@ -14,7 +14,20 @@ const FILE_CATEGORY = { materials: "Materials", chat: "Client chat" } as const;
 export const PROJECT_MESSAGES = {
   labels: { status: STATUS, role: ROLE, noteKind: NOTE_KIND, taskStatus: TASK_STATUS, priority: PRIORITY, fileCategory: FILE_CATEGORY },
 
-  nav: { group: "Clients", projects: "Projects", allSites: "All sites" },
+  nav: {
+    group: "Clients",
+    projects: "Projects",
+    allSites: "All sites",
+    allProjects: "All projects",
+    switcher: (label: string) => `Project: ${label}`,
+    sitePicker: (label: string) => `Site: ${label}`,
+    chooseSite: "Choose a site",
+    unassigned: "Sites without a project",
+    ungrouped: "Other projects",
+    newProject: "New project",
+    backToProject: (name: string) => `Back to ${name}`,
+    project: "Project",
+  },
 
   list: {
     title: "Projects",
@@ -28,6 +41,10 @@ export const PROJECT_MESSAGES = {
     openTasks: (n: number) => `${n} open task${n === 1 ? "" : "s"}`,
     noJournal: "No journal entries yet",
     role: (role: string) => `You: ${role}`,
+    ungrouped: "Other projects",
+    unassignedTitle: "Sites without a project",
+    unassignedDescription: "Your sites that are in none of your projects. Open one, or add it to a project in the project's Sites tab.",
+    allSitesLink: "All sites",
   },
 
   form: {
@@ -37,6 +54,8 @@ export const PROJECT_MESSAGES = {
     slug: "Slug",
     slugHint: "Latin letters, digits and -. Used in links and by the agent sync. Made from the name when left empty.",
     status: "Status",
+    group: "Group",
+    groupHint: "Optional. Projects with the same group are listed together, e.g. one client with several projects.",
     testUrl: "Test site",
     testUrlHint: "The test copy where changes are shown before production.",
     geo: "Geo",
@@ -62,7 +81,7 @@ export const PROJECT_MESSAGES = {
     readOnly: "You can view this project. Ask an owner for the editor role to change it.",
   },
 
-  tabs: { passport: "Passport", brief: "Brief and materials", sites: "Sites", tasks: "Tasks", journal: "Journal", rank: "Rank tracking", budget: "Budget" },
+  tabs: { overview: "Overview", passport: "Passport", brief: "Brief and materials", sites: "Sites", tasks: "Tasks", journal: "Journal", rank: "Rank tracking", budget: "Budget" },
 
   detail: {
     back: "All projects",
@@ -70,6 +89,48 @@ export const PROJECT_MESSAGES = {
     deleteProject: "Delete project",
     deleteConfirm: "Delete this project with its notes, files, tasks and journal? Its sites stay.",
     deleting: "Deleting...",
+  },
+
+  overview: {
+    attention: "Needs attention",
+    alertFired: (type: string, domain: string, when: string) => `${type} alert on ${domain}, ${when}`,
+    alertTypes: {
+      TRAFFIC_DROP: "Traffic drop",
+      POSITION_CHANGE: "Position change",
+      NEW_404: "New 404s",
+      VITALS_DEGRADED: "Vitals degraded",
+      CRAWL_ISSUES: "Crawl issues",
+      NOINDEX_SITEWIDE: "Noindex site-wide",
+    } as Record<string, string>,
+    openAlerts: "Alerts",
+    overdue: (n: number) => `${n} overdue task${n === 1 ? "" : "s"}`,
+    review: (n: number) => `${n} task${n === 1 ? "" : "s"} waiting for review`,
+    numbersTitle: "Last 28 days",
+    numbersDescription: "Against the 28 days before. Positions and CTR are not added up across sites.",
+    noSites: "No site in this project yet. Add a domain in the Sites tab; tasks, the journal and the brief work without one.",
+    addDomain: "Add a domain",
+    notYours: "Only the owner of this site sees its numbers.",
+    google: "Google Search Console",
+    yandex: "Yandex",
+    noGsc: "No Search Console data yet.",
+    noYandex: "Yandex is not linked.",
+    gscClicks: "Clicks",
+    gscImpressions: "Impressions",
+    gscPosition: "Avg. position",
+    links: { positions: "Positions", keywords: "Queries", yandex: "Yandex", pages: "Pages", crawl: "Audit", opportunities: "Opportunities", alerts: "Alerts", settings: "Site settings" },
+    rankTitle: "Rank tracking",
+    rankOn: (source: string, frequency: string) => `On: ${source}, ${frequency}`,
+    rankOff: "Off",
+    rankLast: (when: string) => `last started ${when}`,
+    rankNever: "not started yet",
+    rankSettings: "Settings",
+    tasksTitle: (n: number) => `Tasks (${n} open)`,
+    noTasks: "No open tasks.",
+    allTasks: "All tasks",
+    due: (d: string) => `due ${d}`,
+    journalTitle: "Journal, latest",
+    noJournal: "No journal entries yet.",
+    allJournal: "Whole journal",
   },
 
   members: {

@@ -5,6 +5,8 @@ import { formatDay } from "@/lib/format";
 import { sessionActor } from "@/lib/projects/dashboard";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { listProjects } from "@/lib/projects/service";
+import { groupProjects, type NavSite } from "@/lib/projects/navigation";
+import { loadProjectNav } from "@/lib/projects/shell";
 import { budgetSummary } from "@/lib/projects/budget";
 import { rankUsageSummary } from "@/lib/projects/rank";
 import { formatMoney, monthOf } from "@/lib/projects/rank-usage";
@@ -22,7 +24,9 @@ const T = M.list;
 export default async function ProjectsPage() {
   const session = await auth();
   const actor = sessionActor(session?.user);
-  const projects = actor ? await listProjects(actor) : [];
+  const [projects, nav] = actor ? await Promise.all([listProjects(actor), loadProjectNav(actor)]) : [[], null];
+  // Sites of the user that are in none of their projects: listed below, never hidden.
+  const unassigned = nav?.unassigned ?? [];
   const month = monthOf(new Date());
   const [budgets, rank] =
     actor && projects.length
@@ -30,18 +34,14 @@ export default async function ProjectsPage() {
       : [null, []];
   const B = M.budget;
   // A project's line of this month, when it has a plan or spending.
+  const groups = groupProjects(projects);
   const budgetOf = new Map((budgets?.projects ?? []).filter((b) => b.plan > 0 || b.actual !== 0).map((b) => [b.slug, b]));
 
   const actions = (
-    <>
-      <Link href="/sites" className={buttonVariants({ variant: "outline" })}>
-        {T.allSites}
-      </Link>
-      <Link href="/projects/new" className={buttonVariants()}>
-        <Plus aria-hidden />
-        {T.newProject}
-      </Link>
-    </>
+    <Link href="/projects/new" className={buttonVariants()}>
+      <Plus aria-hidden />
+      {T.newProject}
+    </Link>
   );
 
   if (projects.length === 0) {
@@ -55,6 +55,7 @@ export default async function ProjectsPage() {
           actionLabel={T.newProject}
           actionHref="/projects/new"
         />
+        <UnassignedSites sites={unassigned} />
       </div>
     );
   }
@@ -87,14 +88,17 @@ export default async function ProjectsPage() {
           </div>
         </section>
       )}
+      {groups.map((g) => (
+      <section key={g.name ?? ""} aria-label={g.name ?? T.ungrouped} className="mb-8">
+      {(groups.length > 1 || g.name) && <h2 className="mb-3 text-[15px] font-medium text-text-strong">{g.name ?? T.ungrouped}</h2>}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {projects.map((p) => (
+        {g.projects.map((p) => (
           <Link key={p.id} href={`/projects/${p.slug}`} className="panel group flex h-full flex-col gap-3 p-5">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
-                <h2 className="truncate text-[17px] leading-6 font-medium text-text-strong decoration-brand-500 underline-offset-4 group-hover:underline">
+                <h3 className="truncate text-[17px] leading-6 font-medium text-text-strong decoration-brand-500 underline-offset-4 group-hover:underline">
                   {p.name}
-                </h2>
+                </h3>
                 <p className="mt-0.5 truncate font-data text-[12px] text-muted-foreground">
                   {p.sites.length ? p.sites.map((s) => s.domain).join(", ") : T.noSites}
                 </p>
@@ -117,6 +121,36 @@ export default async function ProjectsPage() {
           </Link>
         ))}
       </div>
+      </section>
+      ))}
+      <UnassignedSites sites={unassigned} />
     </div>
+  );
+}
+
+/** Agency fork: the user's sites in none of their projects, with the one remaining link to All sites. */
+function UnassignedSites({ sites }: { sites: NavSite[] }) {
+  if (sites.length === 0) return null;
+  return (
+    <section id="unassigned" aria-labelledby="unassigned-title" className="panel mt-2 p-5">
+      <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
+        <h2 id="unassigned-title" className="text-[15px] font-medium text-text-strong">
+          {T.unassignedTitle} <span className="font-data text-[12px] text-muted-foreground">{sites.length}</span>
+        </h2>
+        <Link href="/sites" className="text-link text-[13px] font-medium">
+          {T.allSitesLink}
+        </Link>
+      </div>
+      <p className="mb-3 text-[13px] text-muted-foreground">{T.unassignedDescription}</p>
+      <ul className="flex flex-wrap gap-2">
+        {sites.map((s) => (
+          <li key={s.id}>
+            <Link href={`/sites/${s.id}`} className="inline-flex h-8 items-center rounded-md border border-border px-3 font-data text-[13px] text-text-strong hover:border-line-strong">
+              {s.domain}
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }

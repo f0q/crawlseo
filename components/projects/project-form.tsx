@@ -15,6 +15,7 @@ export type Passport = {
   slug: string;
   name: string;
   status: string;
+  group?: string | null;
   testUrl: string | null;
   geo: string | null;
   language: string | null;
@@ -29,6 +30,7 @@ const EMPTY: Passport = {
   slug: "",
   name: "",
   status: "client",
+  group: null,
   testUrl: null,
   geo: null,
   language: null,
@@ -65,6 +67,7 @@ export function ProjectForm({ project, canEdit = true }: { project?: Passport; c
     const body = {
       name: v.name,
       status: v.status,
+      group: v.group ?? null,
       testUrl: v.testUrl,
       geo: v.geo,
       language: v.language,
@@ -116,6 +119,9 @@ export function ProjectForm({ project, canEdit = true }: { project?: Passport; c
               </option>
             ))}
           </select>
+        </Field>
+        <Field label={T.group} hint={T.groupHint}>
+          <input className={inputClass} value={v.group ?? ""} onChange={set("group")} maxLength={80} disabled={disabled} />
         </Field>
         <Field label={T.testUrl} hint={T.testUrlHint}>
           <input className={inputClass} type="url" value={v.testUrl ?? ""} onChange={set("testUrl")} placeholder="https://" disabled={disabled} />
