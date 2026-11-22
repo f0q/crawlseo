@@ -5,6 +5,7 @@ import * as read from "./handlers";
 import { MAX_PUSH_BYTES, positions, pushPositions, rankEngines } from "@/lib/rank-providers/api-v1";
 import { PROJECT_API_METHODS, PROJECTS_ROOT, projectsApi } from "@/lib/projects/api-v1";
 import { PROJECT_MESSAGES } from "@/lib/projects/messages";
+import { yandexMetrika, yandexWebmaster } from "@/lib/yandex/api-v1";
 import { ApiError } from "./params";
 
 /*
@@ -31,6 +32,8 @@ import { ApiError } from "./params";
  * GET /api/v1/sites/{siteId}/rank-engines         agency fork: rank engines of every source, ?source= (lib/rank-providers/api-v1.ts)
  * GET /api/v1/sites/{siteId}/positions            positions of an engine, ?engine=&source=&date=&from=&to=&limit=&checks=
  * POST /api/v1/sites/{siteId}/positions           write-scoped key: a batch of rows of one source and engine
+ * GET /api/v1/sites/{siteId}/yandex/webmaster  agency fork: Webmaster cards, queries, problems, ?days=&limit= (lib/yandex/api-v1.ts)
+ * GET /api/v1/sites/{siteId}/yandex/metrika    agency fork: Metrika totals, sources, goals, daily series, ?days=
  * GET|POST|PATCH /api/v1/projects/...             agency fork: client projects, writes with a write-scoped key (lib/projects/http.ts)
  */
 
@@ -120,6 +123,14 @@ async function route(owner: KeyOwner, segments: string[], params: URLSearchParam
         return read.bingKeywords(site, params);
       case "pages":
         return read.bingPages(site, params);
+    }
+  }
+  if (segments.length === 4 && resource === "yandex") {
+    switch (segments[3]) {
+      case "webmaster":
+        return yandexWebmaster(site, params);
+      case "metrika":
+        return yandexMetrika(site, params);
     }
   }
   if (segments.length === 5 && resource === "crawls" && sub === "issues") {

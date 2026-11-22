@@ -152,6 +152,51 @@ export async function seedApiFixtures(db: PrismaClient): Promise<Fixtures> {
     },
   });
 
+  // Yandex Webmaster and Metrika (agency fork): site A linked with a goal, site B with its own secret rows.
+  await db.yandexSiteLink.create({
+    data: {
+      siteId: "site-a",
+      webmasterHostId: "https:quilltab.app:443",
+      webmasterHostUrl: "https://quilltab.app",
+      metrikaCounterId: "1001",
+      metrikaCounterName: "Quilltab",
+      metrikaGoalIds: ["501"],
+      metrikaGoalNames: { "501": "Sign-up" },
+      webmasterProblems: [
+        { code: "NO_SITEMAP_MODIFICATIONS", severity: "RECOMMENDATION", state: "PRESENT", lastStateUpdate: null },
+        { code: "DNS_ERROR", severity: "FATAL", state: "ABSENT", lastStateUpdate: null },
+      ],
+      webmasterSitemaps: [{ url: "https://quilltab.app/sitemap.xml", urlsCount: 40, errorsCount: 0, lastAccessDate: null, type: "SITEMAP" }],
+    },
+  });
+  await db.yandexSiteLink.create({ data: { siteId: "site-b", webmasterHostId: "https:secret-b.com:443", metrikaCounterId: "2002", metrikaCounterName: "Secret B" } });
+  for (let i = 0; i < 14; i++) {
+    const recent = i < 7;
+    await db.yandexMetrikaDaily.createMany({
+      data: [
+        { siteId: "site-a", date: daysAgo(i), kind: "total", visits: recent ? 30 : 20, users: recent ? 21 : 14, bounceRate: 20, pageDepth: 2, avgDuration: 60 },
+        { siteId: "site-a", date: daysAgo(i), kind: "source", key: "organic", name: "Search engine traffic", visits: recent ? 20 : 10, users: 10 },
+        { siteId: "site-a", date: daysAgo(i), kind: "engine", key: "yandex", name: "Yandex", visits: recent ? 15 : 5, users: 5 },
+        { siteId: "site-b", date: daysAgo(i), kind: "total", visits: 999, users: 999 },
+      ],
+    });
+    await db.yandexGoalDaily.create({ data: { siteId: "site-a", date: daysAgo(i), goalId: "501", reaches: recent ? 2 : 1 } });
+  }
+  await db.yandexWebmasterDaily.createMany({
+    data: [
+      { siteId: "site-a", date: daysAgo(10), sqi: 40, searchablePages: 30 },
+      { siteId: "site-a", date: daysAgo(1), sqi: 50, searchablePages: 35, excludedPages: 4, problemsFatal: 0, problemsCritical: 0, problemsPossible: 0, problemsRecommendation: 1 },
+      { siteId: "site-b", date: daysAgo(1), sqi: 999 },
+    ],
+  });
+  await db.yandexQueryWeekly.createMany({
+    data: [
+      { siteId: "site-a", weekStart: daysAgo(14), query: "quilltab yandex", shows: 80, clicks: 4, avgShowPosition: 6 },
+      { siteId: "site-a", weekStart: daysAgo(7), query: "quilltab yandex", shows: 100, clicks: 10, avgShowPosition: 3.5, avgClickPosition: 2 },
+      { siteId: "site-b", weekStart: daysAgo(7), query: "secret b yandex", shows: 999 },
+    ],
+  });
+
   const a = await createAccessKey(db, "user-a", "laptop");
   const b = await createAccessKey(db, "user-b", "laptop");
   const off = await createAccessKey(db, "user-off", "laptop");
@@ -193,6 +238,11 @@ export async function snapshotUserData(db: PrismaClient): Promise<string> {
     db.projectBudget.findMany({ orderBy: { projectId: "asc" } }),
     db.budgetPlanLine.findMany({ orderBy: { id: "asc" } }),
     db.budgetEntry.findMany({ orderBy: { id: "asc" } }),
+    db.yandexSiteLink.findMany({ orderBy: { id: "asc" } }),
+    db.yandexWebmasterDaily.findMany({ orderBy: { id: "asc" } }),
+    db.yandexQueryWeekly.findMany({ orderBy: { id: "asc" } }),
+    db.yandexMetrikaDaily.findMany({ orderBy: { id: "asc" } }),
+    db.yandexGoalDaily.findMany({ orderBy: { id: "asc" } }),
   ]);
   return JSON.stringify(tables);
 }

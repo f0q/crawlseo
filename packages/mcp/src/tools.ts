@@ -28,6 +28,7 @@ import {
 } from "./formatters";
 import { RANK_TOOL_NAMES, RANK_WRITE_TOOL_NAMES, registerRankTools } from "./rank";
 import { PROJECT_TOOL_NAMES, PROJECT_WRITE_TOOL_NAMES, registerProjectTools } from "./projects";
+import { registerYandexTools, YANDEX_TOOL_NAMES } from "./yandex";
 
 type Period = { startDate: string; endDate: string };
 type BingPeriod = Period & { bingSite: string };
@@ -81,6 +82,7 @@ export const TOOL_NAMES = [
   // Agency fork (./rank.ts).
   ...RANK_TOOL_NAMES,
   ...PROJECT_TOOL_NAMES,
+  ...YANDEX_TOOL_NAMES,
 ] as const;
 
 /** Agency fork: the tools that write. The API refuses them unless the key has the write scope. */
@@ -372,6 +374,7 @@ export function registerTools(server: McpServer, api: ApiClient): void {
 
   registerRankTools(server, api, run, READ_ONLY);
   registerProjectTools(server, api, run, READ_ONLY);
+  registerYandexTools(server, api, run, READ_ONLY);
 }
 
 /** A crawlseo MCP server with every tool, reading through `api`. */

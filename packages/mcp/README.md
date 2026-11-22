@@ -59,6 +59,8 @@ Serves streamable HTTP on `http://127.0.0.1:3333/mcp` and a health check on `/he
 | `list_projects` | Agency fork: client projects you are a member of, with status, role, sites, open tasks and the latest journal entry |
 | `get_project` | Agency fork: a project's passport, sites, members, notes, open tasks, journal and files |
 | `get_project_budget`, `get_rank_usage` | Agency fork: a project's budget (plan vs actual) and rank check usage against the provider limit |
+| `get_yandex_webmaster` | Agency fork: Yandex Webmaster state of a site (SQI, pages in search, excluded pages, problems, sitemaps) and the top search queries of the latest week |
+| `get_yandex_metrika` | Agency fork: Yandex Metrika visits of a site against the previous period, by traffic source and search engine, with goal reaches and daily visits |
 | `create_project`, `upsert_note`, `add_journal_entry`, `upsert_task`, `add_budget_entry` | Agency fork, write tools for client projects; need a key with the write scope |
 
 ## License

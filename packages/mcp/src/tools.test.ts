@@ -81,6 +81,8 @@ const CALLS: [string, Record<string, unknown>, RegExp][] = [
   ["get_project_budget", { slug: "quilltab" }, /Budget \d{4}-\d{2}, RUB: plan 0, actual 0 \(no plan used\)[\s\S]*Categories: work, services, ads/],
   ["get_rank_usage", { slug: "quilltab" }, /Rank checks: OFF, source none, manual[\s\S]*No runs this month/],
   ["get_rank_usage", {}, /Rank checks \d{4}-\d{2}:\n- Labrika \(Business, 0\.072 RUB per check\): planned 0 a month of limit 5000/],
+  ["get_yandex_webmaster", { siteId: "site-a", days: 7 }, /host https:\/\/quilltab\.app[\s\S]*SQI: 50 \(\+10 vs 40\)[\s\S]*NO_SITEMAP_MODIFICATIONS \(RECOMMENDATION\)[\s\S]*quilltab yandex\s+\| 100\s+\| 10\s+\| 10%\s+\| 3\.5\s+\| 2\.0\s+\| 80/],
+  ["get_yandex_metrika", { siteId: "site-a", days: 7 }, /counter Quilltab \(1001\)[\s\S]*visits: 210 \(\+70 vs 140\)[\s\S]*visits from Yandex search: 105 \(\+70 vs 35\)[\s\S]*goal reaches: 14 \(\+7 vs 7\)[\s\S]*Sign-up \[501\]/],
   ["get_saved_keywords", { siteId: "site-a" }, /2 saved keywords[\s\S]*1 had no Search Console data[\s\S]*never seen query\s+\| -[\s\S]*launch target[\s\S]*quilltab notes\s+\| \d/],
 ];
 
