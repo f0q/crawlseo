@@ -18,6 +18,7 @@
 
 import { registerRankChecks } from "@/lib/projects/rank-jobs";
 import { registerRankTracking } from "@/lib/rank-providers/jobs";
+import { registerYandex } from "@/lib/yandex/jobs";
 
 const holder = globalThis as unknown as { crawlseoExtensionsRegistered?: boolean };
 
@@ -29,4 +30,6 @@ export function registerExtensions(): void {
   registerRankTracking();
   // Agency fork: scheduled rank check starts of client projects with checks turned on (lib/projects/rank.ts).
   registerRankChecks();
+  // Agency fork: Yandex Webmaster and Metrika (lib/yandex), one sync job per linked site, daily.
+  registerYandex();
 }

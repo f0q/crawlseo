@@ -15,35 +15,37 @@ model User {
   emailVerified DateTime?
   name          String?
   image         String?
-  googleTokens  Json?     // Google OAuth tokens: accessToken and refreshToken encrypted (lib/google/token-store.ts), the rest plain
+  googleTokens  Json? // Google OAuth tokens: accessToken and refreshToken encrypted (lib/google/token-store.ts), the rest plain
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  accounts      Account[]
-  sessions      Session[]
-  sites         Site[]
-  alerts        Alert[]
-  apiKeys       ApiKey[]
-  accessKeys    AccessKey[]
-  settings      UserSettings?
+  accounts         Account[]
+  sessions         Session[]
+  sites            Site[]
+  alerts           Alert[]
+  apiKeys          ApiKey[]
+  accessKeys       AccessKey[]
+  settings         UserSettings?
   // Agency fork: client projects (lib/projects).
-  projectsOwned Project[]
-  memberships   Membership[]
+  projectsOwned    Project[]
+  memberships      Membership[]
+  // Agency fork: the Yandex OAuth token for Webmaster and Metrika (lib/yandex).
+  yandexConnection YandexConnection?
 }
 
 model Account {
-  id                 String  @id @default(cuid())
-  userId             String
-  type               String
-  provider           String
-  providerAccountId  String
-  refresh_token      String?
-  access_token       String?
-  expires_at         Int?
-  token_type         String?
-  scope              String?
-  id_token           String?
-  session_state      String?
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
@@ -56,7 +58,7 @@ model Session {
   userId       String
   expires      DateTime
 
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model VerificationToken {
@@ -72,13 +74,13 @@ model VerificationToken {
 model ApiKey {
   id                String   @id @default(cuid())
   userId            String
-  provider          String   // "dataforseo" (login+password) | "google_pagespeed" | "bing" (single key)
-  encryptedLogin    String?  // null for single-key providers like google_pagespeed
-  encryptedPassword String   // holds the API key itself for single-key providers
+  provider          String // "dataforseo" (login+password) | "google_pagespeed" | "bing" (single key)
+  encryptedLogin    String? // null for single-key providers like google_pagespeed
+  encryptedPassword String // holds the API key itself for single-key providers
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([userId, provider])
 }
@@ -93,14 +95,14 @@ model AccessKey {
   userId     String
   name       String
   keyHash    String    @unique // SHA-256 of the whole key, hex
-  prefix     String    // the start of the key, to tell keys apart in Settings
+  prefix     String // the start of the key, to tell keys apart in Settings
   // Agency fork: "read" (GET only, the default and every key made before) or
   // "write" (also POST /api/v1/sites/{id}/positions and the push_positions tool).
   scope      String    @default("read")
   createdAt  DateTime  @default(now())
   lastUsedAt DateTime? // updated at most once a minute
 
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
 }
@@ -110,16 +112,16 @@ model AccessKey {
 // What a user sets in Settings > Schedule and Settings > Alert webhook.
 model UserSettings {
   userId             String   @id
-  crawlScheduleDays  Int?     // days between scheduled crawls of each site; null: the server default, 0: off
-  vitalsScheduleDays Int?     // the same for vitals checks
-  webhookUrl         String?  // encrypted (lib/encryption.ts); null: no webhook
-  webhookSecret      String?  // encrypted; signs every delivery
+  crawlScheduleDays  Int? // days between scheduled crawls of each site; null: the server default, 0: off
+  vitalsScheduleDays Int? // the same for vitals checks
+  webhookUrl         String? // encrypted (lib/encryption.ts); null: no webhook
+  webhookSecret      String? // encrypted; signs every delivery
   mcpEnabled         Boolean  @default(false) // Settings > MCP: access keys work only while this is on
-  alertEmailTo       String?  // Settings > Email alerts: recipients, comma-separated; null: none
+  alertEmailTo       String? // Settings > Email alerts: recipients, comma-separated; null: none
   alertEmailEnabled  Boolean  @default(false) // fired alerts are emailed only while this is on
   updatedAt          DateTime @updatedAt
 
-  user               User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 // ============ SITES ============
@@ -127,29 +129,35 @@ model UserSettings {
 model Site {
   id          String   @id @default(cuid())
   userId      String
-  domain      String   // e.g. "quilltab.app"
-  gscProperty String?  // e.g. "sc-domain:quilltab.app"
-  bingSite    String?  // e.g. "https://quilltab.app/" (Bing's own URL form)
+  domain      String // e.g. "quilltab.app"
+  gscProperty String? // e.g. "sc-domain:quilltab.app"
+  bingSite    String? // e.g. "https://quilltab.app/" (Bing's own URL form)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  user          User            @relation(fields: [userId], references: [id], onDelete: Cascade)
-  keywords      Keyword[]
-  pages         Page[]
-  crawls        Crawl[]
-  vitals        VitalsReport[]
-  alerts        Alert[]
-  savedKeywords SavedKeyword[]
-  rankSnapshots RankSnapshot[]
-  bingDaily     BingDaily[]
-  bingWeekly    BingSearchWeekly[]
-  jobs          Job[]
+  user               User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  keywords           Keyword[]
+  pages              Page[]
+  crawls             Crawl[]
+  vitals             VitalsReport[]
+  alerts             Alert[]
+  savedKeywords      SavedKeyword[]
+  rankSnapshots      RankSnapshot[]
+  bingDaily          BingDaily[]
+  bingWeekly         BingSearchWeekly[]
+  jobs               Job[]
   // Agency fork: positions from rank trackers, imports and the write API (lib/rank-providers).
-  rankEngines   ExternalRankEngine[]
+  rankEngines        ExternalRankEngine[]
   // Agency fork: the client project this site belongs to, if any (lib/projects).
-  projectId      String?
-  project        Project?       @relation(fields: [projectId], references: [id], onDelete: SetNull)
-  journalEntries JournalEntry[]
+  projectId          String?
+  project            Project?               @relation(fields: [projectId], references: [id], onDelete: SetNull)
+  journalEntries     JournalEntry[]
+  // Agency fork: Yandex Webmaster and Metrika (lib/yandex).
+  yandexLink         YandexSiteLink?
+  yandexWmDaily      YandexWebmasterDaily[]
+  yandexQueries      YandexQueryWeekly[]
+  yandexMetrikaDaily YandexMetrikaDaily[]
+  yandexGoalDaily    YandexGoalDaily[]
 
   @@unique([userId, domain])
   @@index([projectId])
@@ -160,17 +168,17 @@ model Site {
 model Keyword {
   id          String   @id @default(cuid())
   siteId      String
-  query       String   // The search query
+  query       String // The search query
   date        DateTime // Date of the data point
   clicks      Int      @default(0)
   impressions Int      @default(0)
   ctr         Float    @default(0)
   position    Float    @default(0)
-  page        String?  // Landing page URL
-  device      String?  // DESKTOP, MOBILE, TABLET
-  country     String?  // Country code
+  page        String? // Landing page URL
+  device      String? // DESKTOP, MOBILE, TABLET
+  country     String? // Country code
 
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, query, date])
   @@index([siteId, date])
@@ -187,7 +195,7 @@ model Page {
   ctr         Float    @default(0)
   position    Float    @default(0)
 
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, url, date])
   @@index([siteId, date])
@@ -216,7 +224,7 @@ model BingDaily {
   blockedByRobots Int?
   crawlErrors     Int?
 
-  site            Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, date])
 }
@@ -226,14 +234,14 @@ model BingDaily {
 model BingSearchWeekly {
   id                    String   @id @default(cuid())
   siteId                String
-  kind                  String   // "query" | "page"
-  key                   String   // the search query, or the page URL
+  kind                  String // "query" | "page"
+  key                   String // the search query, or the page URL
   weekEnding            DateTime
-  clicks                Int?     // null when Bing left the counter out
+  clicks                Int? // null when Bing left the counter out
   impressions           Int?
   avgImpressionPosition Float?
 
-  site                  Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, kind, key, weekEnding])
   @@index([siteId, kind, weekEnding])
@@ -248,7 +256,7 @@ model SavedKeyword {
   notes     String?
   createdAt DateTime @default(now())
 
-  site      Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, query])
   @@index([siteId])
@@ -266,7 +274,7 @@ model RankSnapshot {
   page        String?
   date        DateTime
 
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@unique([siteId, query, date])
   @@index([siteId, date])
@@ -276,25 +284,25 @@ model RankSnapshot {
 // ============ CRAWLER ============
 
 model Crawl {
-  id          String      @id @default(cuid())
-  siteId      String
-  status      CrawlStatus @default(PENDING)
-  startedAt   DateTime?
-  finishedAt  DateTime?
-  pagesFound  Int         @default(0)
-  issuesFound Int         @default(0)
-  healthScore Int?        // 0-100
-  maxPages    Int         @default(200)
+  id             String      @id @default(cuid())
+  siteId         String
+  status         CrawlStatus @default(PENDING)
+  startedAt      DateTime?
+  finishedAt     DateTime?
+  pagesFound     Int         @default(0)
+  issuesFound    Int         @default(0)
+  healthScore    Int? // 0-100
+  maxPages       Int         @default(200)
   // Set when the crawl is created and each time it makes progress. A RUNNING
   // crawl that stops updating it was interrupted (#57).
   lastProgressAt DateTime?
-  error       String?     // why a FAILED crawl failed
+  error          String? // why a FAILED crawl failed
 
-  site        Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  issues      CrawlIssue[]
-  auditPages  AuditPage[]
-  auditLinks  AuditLink[]
-  jobs        Job[]
+  site       Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  issues     CrawlIssue[]
+  auditPages AuditPage[]
+  auditLinks AuditLink[]
+  jobs       Job[]
 
   @@index([siteId, startedAt])
 }
@@ -309,43 +317,43 @@ enum CrawlStatus {
 // ============ AUDIT PAGE DATA ============
 
 model AuditPage {
-  id              String  @id @default(cuid())
-  crawlId         String
-  url             String
-  statusCode      Int
-  redirectUrl     String?
+  id          String  @id @default(cuid())
+  crawlId     String
+  url         String
+  statusCode  Int
+  redirectUrl String?
 
-  title           String?
-  description     String?
-  canonical       String?
-  robotsMeta      String?
+  title       String?
+  description String?
+  canonical   String?
+  robotsMeta  String?
 
-  h1Count         Int     @default(0)
-  h1s             Json?   // Array of H1 text
-  wordCount       Int     @default(0)
+  h1Count   Int   @default(0)
+  h1s       Json? // Array of H1 text
+  wordCount Int   @default(0)
 
-  imageCount      Int     @default(0)
-  imagesMissingAlt Int    @default(0)
+  imageCount       Int @default(0)
+  imagesMissingAlt Int @default(0)
 
-  internalLinks   Int     @default(0)
-  externalLinks   Int     @default(0)
+  internalLinks Int @default(0)
+  externalLinks Int @default(0)
 
-  hasSchema       Boolean @default(false)
-  hreflangTags    Json?   // Array of hreflang values
+  hasSchema    Boolean @default(false)
+  hreflangTags Json? // Array of hreflang values
 
-  contentScore    Int     @default(0)  // 0-100
-  contentHash     String? // SHA-256 of body text
+  contentScore Int     @default(0) // 0-100
+  contentHash  String? // SHA-256 of body text
 
-  responseTimeMs  Int     @default(0)
-  byteSize        Int     @default(0)
+  responseTimeMs Int     @default(0)
+  byteSize       Int     @default(0)
   // False when the page is noindex: meta robots/googlebot or X-Robots-Tag (#105).
   // Such a page is crawled and its links followed, but it is kept out of the
   // health score and the issues.
-  indexable       Boolean @default(true)
-  noindexSource   String? // "meta", "x-robots-tag" or both, comma-joined
-  xRobotsTag      String? // the X-Robots-Tag header lines as received, newline-separated
+  indexable      Boolean @default(true)
+  noindexSource  String? // "meta", "x-robots-tag" or both, comma-joined
+  xRobotsTag     String? // the X-Robots-Tag header lines as received, newline-separated
 
-  crawl           Crawl   @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+  crawl Crawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
 
   @@index([crawlId])
   @@index([crawlId, url])
@@ -354,52 +362,52 @@ model AuditPage {
 // ============ AUDIT LINK GRAPH ============
 
 model AuditLink {
-  id          String  @id @default(cuid())
-  crawlId     String
-  sourceUrl   String
-  targetUrl   String
-  anchorText  String?
-  isInternal  Boolean @default(true)
-  isNofollow  Boolean @default(false)
-  statusCode  Int?
+  id         String  @id @default(cuid())
+  crawlId    String
+  sourceUrl  String
+  targetUrl  String
+  anchorText String?
+  isInternal Boolean @default(true)
+  isNofollow Boolean @default(false)
+  statusCode Int?
 
-  crawl       Crawl   @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+  crawl Crawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
 
   @@index([crawlId])
   @@index([crawlId, sourceUrl])
 }
 
 model CrawlIssue {
-  id          String        @id @default(cuid())
-  crawlId     String
-  url         String
-  type        IssueType
-  severity    IssueSeverity
-  message     String
-  details     Json?         // Additional context
+  id       String        @id @default(cuid())
+  crawlId  String
+  url      String
+  type     IssueType
+  severity IssueSeverity
+  message  String
+  details  Json? // Additional context
 
-  crawl       Crawl         @relation(fields: [crawlId], references: [id], onDelete: Cascade)
+  crawl Crawl @relation(fields: [crawlId], references: [id], onDelete: Cascade)
 
   @@index([crawlId, type])
 }
 
 enum IssueType {
-  BROKEN_LINK           // 404, 500, etc.
-  REDIRECT              // 301, 302 chains
-  MISSING_TITLE         // No <title> tag
-  MISSING_DESCRIPTION   // No meta description
-  DUPLICATE_TITLE       // Same title on multiple pages
+  BROKEN_LINK // 404, 500, etc.
+  REDIRECT // 301, 302 chains
+  MISSING_TITLE // No <title> tag
+  MISSING_DESCRIPTION // No meta description
+  DUPLICATE_TITLE // Same title on multiple pages
   DUPLICATE_DESCRIPTION // Same description on multiple pages
-  MISSING_H1            // No H1 heading
-  MULTIPLE_H1           // More than one H1
-  MISSING_ALT           // Images without alt text
-  MISSING_CANONICAL     // No canonical tag
-  MISSING_ROBOTS        // No robots.txt
-  MISSING_SITEMAP       // No sitemap.xml
-  MISSING_SCHEMA        // No structured data
-  SLOW_PAGE             // Load time > 3s
-  MIXED_CONTENT         // HTTP resources on HTTPS page
-  LARGE_PAGE            // Page size > 3MB
+  MISSING_H1 // No H1 heading
+  MULTIPLE_H1 // More than one H1
+  MISSING_ALT // Images without alt text
+  MISSING_CANONICAL // No canonical tag
+  MISSING_ROBOTS // No robots.txt
+  MISSING_SITEMAP // No sitemap.xml
+  MISSING_SCHEMA // No structured data
+  SLOW_PAGE // Load time > 3s
+  MIXED_CONTENT // HTTP resources on HTTPS page
+  LARGE_PAGE // Page size > 3MB
 }
 
 enum IssueSeverity {
@@ -411,24 +419,24 @@ enum IssueSeverity {
 // ============ CORE WEB VITALS ============
 
 model VitalsReport {
-  id          String   @id @default(cuid())
-  siteId      String
-  url         String
-  date        DateTime @default(now())
-  device      String   // MOBILE or DESKTOP
+  id     String   @id @default(cuid())
+  siteId String
+  url    String
+  date   DateTime @default(now())
+  device String // MOBILE or DESKTOP
 
   // Core Web Vitals
-  lcp         Float?   // Largest Contentful Paint (seconds)
-  fid         Float?   // First Input Delay (milliseconds)
-  cls         Float?   // Cumulative Layout Shift (score)
-  inp         Float?   // Interaction to Next Paint (milliseconds)
+  lcp Float? // Largest Contentful Paint (seconds)
+  fid Float? // First Input Delay (milliseconds)
+  cls Float? // Cumulative Layout Shift (score)
+  inp Float? // Interaction to Next Paint (milliseconds)
 
   // Performance
-  perfScore   Int?     // 0-100 Lighthouse performance score
-  speedIndex  Float?   // Speed Index (seconds)
-  ttfb        Float?   // Time to First Byte (seconds)
+  perfScore  Int? // 0-100 Lighthouse performance score
+  speedIndex Float? // Speed Index (seconds)
+  ttfb       Float? // Time to First Byte (seconds)
 
-  site        Site     @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 
   @@index([siteId, date])
   @@index([siteId, url, date])
@@ -437,27 +445,27 @@ model VitalsReport {
 // ============ ALERTS ============
 
 model Alert {
-  id          String     @id @default(cuid())
-  userId      String
-  siteId      String
-  type        AlertType
-  channel     AlertChannel
-  config      Json       // Thresholds, webhook URL, etc.
-  enabled     Boolean    @default(true)
-  lastFired   DateTime?
-  createdAt   DateTime   @default(now())
+  id        String       @id @default(cuid())
+  userId    String
+  siteId    String
+  type      AlertType
+  channel   AlertChannel
+  config    Json // Thresholds, webhook URL, etc.
+  enabled   Boolean      @default(true)
+  lastFired DateTime?
+  createdAt DateTime     @default(now())
 
-  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
-  site        Site       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
 }
 
 enum AlertType {
-  TRAFFIC_DROP       // Clicks dropped > X%
-  POSITION_CHANGE    // Keyword position changed > X
-  NEW_404            // New broken links detected
-  VITALS_DEGRADED    // Core Web Vitals got worse
-  CRAWL_ISSUES       // New crawl issues detected
-  NOINDEX_SITEWIDE   // Most fetched pages of the latest crawl are noindex
+  TRAFFIC_DROP // Clicks dropped > X%
+  POSITION_CHANGE // Keyword position changed > X
+  NEW_404 // New broken links detected
+  VITALS_DEGRADED // Core Web Vitals got worse
+  CRAWL_ISSUES // New crawl issues detected
+  NOINDEX_SITEWIDE // Most fetched pages of the latest crawl are noindex
 }
 
 enum AlertChannel {
@@ -478,9 +486,9 @@ enum AlertChannel {
 model Job {
   id          String    @id @default(cuid())
   siteId      String
-  type        String    // a type registered in lib/jobs/handlers.ts
+  type        String // a type registered in lib/jobs/handlers.ts
   status      JobStatus @default(QUEUED)
-  source      String    // "manual" | "mcp" | "schedule" | "chain" | "site-added"
+  source      String // "manual" | "mcp" | "schedule" | "chain" | "site-added"
   priority    Int       @default(0) // higher runs first
   payload     Json?
   result      Json?
@@ -488,19 +496,19 @@ model Job {
   maxAttempts Int
   runAt       DateTime  @default(now()) // not before
   activeKey   String?   @unique // "<type>:<siteId>" while QUEUED or RUNNING, null once finished
-  lockedBy    String?   // id of the process running it
+  lockedBy    String? // id of the process running it
   lockedAt    DateTime?
   heartbeatAt DateTime?
   startedAt   DateTime?
   finishedAt  DateTime?
   lastError   String?
-  errorCode   String?   // e.g. REAUTH_REQUIRED, QUOTA_EXCEEDED
-  crawlId     String?   // the crawl row of the latest attempt
+  errorCode   String? // e.g. REAUTH_REQUIRED, QUOTA_EXCEEDED
+  crawlId     String? // the crawl row of the latest attempt
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  site        Site      @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  crawl       Crawl?    @relation(fields: [crawlId], references: [id], onDelete: SetNull)
+  site  Site   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  crawl Crawl? @relation(fields: [crawlId], references: [id], onDelete: SetNull)
 
   @@index([status, runAt])
   @@index([siteId, type, createdAt])
@@ -518,7 +526,7 @@ enum JobStatus {
 // anything picks up queued jobs. Holds no user data.
 model WorkerHeartbeat {
   id         String   @id // the process id used in Job.lockedBy
-  mode       String   // "inline" | "worker"
+  mode       String // "inline" | "worker"
   hostname   String
   version    String
   startedAt  DateTime
@@ -526,7 +534,6 @@ model WorkerHeartbeat {
 
   @@index([lastSeenAt])
 }
-
 
 // The scheduler's own timestamps (lib/jobs/scheduler.ts). Holds no user data.
 // "firstSeenAt:<type>": the first pass that could schedule that job type; a
@@ -548,20 +555,20 @@ model SchedulerState {
 model ExternalRankEngine {
   id               String    @id @default(cuid())
   siteId           String
-  source           String    // a rank provider id, "import", or a pushed source name
-  externalSiteId   String    // provider project id; label key for imported and pushed engines
-  externalEngineId String    // provider engine id; "engine|region|device" for imported and pushed ones
+  source           String // a rank provider id, "import", or a pushed source name
+  externalSiteId   String // provider project id; label key for imported and pushed engines
+  externalEngineId String // provider engine id; "engine|region|device" for imported and pushed ones
   label            String    @default("") // a user label for imported and pushed engines
-  host             String    // the project's host in the tracker, or the site's domain
-  engine           String    // e.g. "Яндекс"
-  region           String    // e.g. "Москва (ПК)"
-  device           String    // "desktop" | "mobile"
+  host             String // the project's host in the tracker, or the site's domain
+  engine           String // e.g. "Яндекс"
+  region           String // e.g. "Москва (ПК)"
+  device           String // "desktop" | "mobile"
   lastSyncedAt     DateTime?
   createdAt        DateTime  @default(now())
   updatedAt        DateTime  @updatedAt
 
-  site             Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  ranks            ExternalRank[]
+  site  Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  ranks ExternalRank[]
 
   @@unique([siteId, source, externalSiteId, externalEngineId])
 }
@@ -579,7 +586,7 @@ model ExternalRank {
   frequency      Int?
   frequencyExact Int?
 
-  engine         ExternalRankEngine @relation(fields: [engineId], references: [id], onDelete: Cascade)
+  engine ExternalRankEngine @relation(fields: [engineId], references: [id], onDelete: Cascade)
 
   @@unique([engineId, keyword, date])
   @@index([engineId, date])
@@ -602,13 +609,13 @@ model Project {
   searchEngines String[] @default([])
   cms           String?
   hosting       String?
-  contacts      String?  // free text
-  accessNotes   String?  // names of variables and where secrets live, never the secrets (lib/projects/secrets.ts)
+  contacts      String? // free text
+  accessNotes   String? // names of variables and where secrets live, never the secrets (lib/projects/secrets.ts)
   ownerId       String
   createdAt     DateTime @default(now())
   updatedAt     DateTime @updatedAt
 
-  owner         User           @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User                 @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   members       Membership[]
   sites         Site[]
   notes         ProjectNote[]
@@ -628,11 +635,11 @@ model Membership {
   id        String   @id @default(cuid())
   projectId String
   userId    String
-  role      String   // owner | editor | viewer
+  role      String // owner | editor | viewer
   createdAt DateTime @default(now())
 
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, userId])
   @@index([userId])
@@ -643,16 +650,16 @@ model Membership {
 model ProjectNote {
   id        String   @id @default(cuid())
   projectId String
-  kind      String   // brief | audience | chat | strategy | other
+  kind      String // brief | audience | chat | strategy | other
   title     String
   body      String   @default("")
   version   Int      @default(1)
-  updatedBy String   // who wrote the current version: an email, plus the key name for the API
+  updatedBy String // who wrote the current version: an email, plus the key name for the API
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  project   Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  versions  ProjectNoteVersion[]
+  project  Project              @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  versions ProjectNoteVersion[]
 
   @@unique([projectId, kind, title])
   @@index([projectId, updatedAt])
@@ -667,7 +674,7 @@ model ProjectNoteVersion {
   updatedBy String
   createdAt DateTime // when this version was written
 
-  note      ProjectNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
+  note ProjectNote @relation(fields: [noteId], references: [id], onDelete: Cascade)
 
   @@unique([noteId, version])
 }
@@ -677,10 +684,10 @@ model ProjectNoteVersion {
 model ProjectFile {
   id          String   @id @default(cuid())
   projectId   String
-  name        String   // the original file name, cleaned
+  name        String // the original file name, cleaned
   storageName String   @unique
-  type        String   // the extension we accepted: pdf, docx, xlsx, txt, png ...
-  mime        String   // the type we send, from the extension, never the browser's
+  type        String // the extension we accepted: pdf, docx, xlsx, txt, png ...
+  mime        String // the type we send, from the extension, never the browser's
   size        Int
   sha256      String
   category    String   @default("materials") // materials | chat
@@ -688,7 +695,7 @@ model ProjectFile {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, updatedAt])
 }
@@ -705,8 +712,8 @@ model JournalEntry {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
-  site       Site?    @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  site    Site?   @relation(fields: [siteId], references: [id], onDelete: SetNull)
 
   @@index([projectId, date])
   @@index([projectId, updatedAt])
@@ -721,11 +728,11 @@ model ProjectTask {
   due         DateTime?
   assignee    String?
   notes       String?
-  externalKey String?   // the caller's own id, so a sync can upsert without knowing ours
+  externalKey String? // the caller's own id, so a sync can upsert without knowing ours
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 
-  project     Project   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, externalKey])
   @@index([projectId, updatedAt])
@@ -738,14 +745,14 @@ model ProjectTask {
 model ProjectRankSettings {
   projectId String   @id
   enabled   Boolean  @default(false)
-  source    String   @default("none")   // a rank provider id, or "none"
+  source    String   @default("none") // a rank provider id, or "none"
   frequency String   @default("manual") // weekly | biweekly | monthly | manual
-  engineIds String[] @default([])       // ExternalRankEngine ids of the project's sites that are checked
+  engineIds String[] @default([]) // ExternalRankEngine ids of the project's sites that are checked
   updatedBy String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // The usage log: one row per attempt to start a check of a project, started or not.
@@ -753,16 +760,16 @@ model RankCheckRun {
   id              String   @id @default(cuid())
   projectId       String
   provider        String
-  trigger         String   // schedule | manual
-  status          String   // started | partial | skipped | failed
-  reason          String?  // why skipped or failed: no-cabinet-login, over-limit, no-engines, not-supported, error text
+  trigger         String // schedule | manual
+  status          String // started | partial | skipped | failed
+  reason          String? // why skipped or failed: no-cabinet-login, over-limit, no-engines, not-supported, error text
   engineIds       String[] @default([])
-  details         Json?    // per engine: id, label, keywords, started, error
+  details         Json? // per engine: id, label, keywords, started, error
   estimatedChecks Int      @default(0) // keywords x engines that were started
   createdBy       String?
   createdAt       DateTime @default(now())
 
-  project         Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@index([projectId, createdAt])
   @@index([provider, createdAt])
@@ -786,7 +793,7 @@ model ProjectBudget {
   categories String[] @default(["work", "services", "ads", "content", "links", "other"])
   updatedAt  DateTime @updatedAt
 
-  project    Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 }
 
 // The monthly plan of one category. month "": every month; "YYYY-MM": that month only, over the default.
@@ -798,7 +805,7 @@ model BudgetPlanLine {
   amount    Decimal  @db.Decimal(14, 2)
   updatedAt DateTime @updatedAt
 
-  project   Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, month, category])
 }
@@ -811,14 +818,130 @@ model BudgetEntry {
   category    String
   amount      Decimal  @db.Decimal(14, 2)
   note        String?
-  externalKey String?  // the caller's own id, so a retry adds nothing twice
+  externalKey String? // the caller's own id, so a retry adds nothing twice
   author      String
   authorKind  String   @default("human") // human | agent
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
-  project     Project  @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
 
   @@unique([projectId, externalKey])
   @@index([projectId, date])
+}
+
+// ============ YANDEX WEBMASTER AND METRIKA (agency fork) ============
+// docs/agency/yandex.md. One OAuth token per user covers both services.
+
+model YandexConnection {
+  id                    String    @id @default(cuid())
+  userId                String    @unique
+  encryptedAccessToken  String
+  encryptedRefreshToken String?
+  expiresAt             DateTime?
+  scope                 String    @default("")
+  login                 String? // from login.yandex.ru when the token has login:info
+  webmasterUserId       String? // GET /v4/user, read once
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// Which Webmaster host and Metrika counter feed a site, and the current
+// Webmaster state that has no history (problems, sitemaps).
+model YandexSiteLink {
+  id                 String    @id @default(cuid())
+  siteId             String    @unique
+  webmasterHostId    String? // e.g. "https:example.com:443"
+  webmasterHostUrl   String? // the host's unicode URL, for display
+  metrikaCounterId   String?
+  metrikaCounterName String?
+  metrikaGoalIds     String[]  @default([])
+  metrikaGoalNames   Json? // { "<goalId>": "name" }
+  webmasterProblems  Json? // [{ code, severity, state, lastStateUpdate }]
+  webmasterSitemaps  Json? // [{ url, urlsCount, errorsCount, lastAccessDate }]
+  webmasterSyncedAt  DateTime?
+  metrikaSyncedAt    DateTime?
+  webmasterError     String?
+  metrikaError       String?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+}
+
+// One Webmaster day of a site. Columns are null when Webmaster did not report them for that day.
+model YandexWebmasterDaily {
+  id                     String   @id @default(cuid())
+  siteId                 String
+  date                   DateTime // UTC midnight
+  sqi                    Int?
+  searchablePages        Int?
+  excludedPages          Int?
+  problemsFatal          Int?
+  problemsCritical       Int?
+  problemsPossible       Int?
+  problemsRecommendation Int?
+  http2xx                Int? // pages downloaded by the robot that day, by HTTP status
+  http3xx                Int?
+  http4xx                Int?
+  http5xx                Int?
+  httpOther              Int?
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, date])
+}
+
+// Popular search queries of one week (Monday to Sunday), as Webmaster summed them.
+model YandexQueryWeekly {
+  id               String   @id @default(cuid())
+  siteId           String
+  weekStart        DateTime // the Monday, UTC midnight
+  query            String
+  shows            Int?
+  clicks           Int?
+  avgShowPosition  Float?
+  avgClickPosition Float?
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, weekStart, query])
+  @@index([siteId, weekStart])
+}
+
+// Metrika visits of one day. kind "total" (key ""), "source" (ym:s:lastTrafficSource id)
+// or "engine" (ym:s:lastSearchEngineRoot id, search traffic only).
+model YandexMetrikaDaily {
+  id          String   @id @default(cuid())
+  siteId      String
+  date        DateTime // UTC midnight, in the counter's time zone
+  kind        String
+  key         String   @default("")
+  name        String   @default("")
+  visits      Int
+  users       Int
+  bounceRate  Float? // percent
+  pageDepth   Float?
+  avgDuration Float? // seconds
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, kind, key, date])
+  @@index([siteId, date])
+}
+
+// Reaches of one Metrika goal on one day.
+model YandexGoalDaily {
+  id      String   @id @default(cuid())
+  siteId  String
+  date    DateTime
+  goalId  String
+  reaches Int
+
+  site Site @relation(fields: [siteId], references: [id], onDelete: Cascade)
+
+  @@unique([siteId, goalId, date])
+  @@index([siteId, date])
 }

@@ -1,0 +1,175 @@
+/*
+ * Every UI string of the Yandex Webmaster and Metrika screens (agency fork):
+ * Settings > Connections, Site settings, the site's Yandex page, the project
+ * cards and the API errors. A translation replaces this file only.
+ */
+
+export const YANDEX_UI = {
+  nav: "Yandex",
+  errors: {
+    notConfigured: "Yandex is not set up on this instance: the operator sets YANDEX_CLIENT_ID and YANDEX_CLIENT_SECRET.",
+    notConnected: "Yandex is not connected. Connect it in Settings > Connections.",
+    expired: "Yandex no longer accepts the stored token. Connect Yandex again in Settings > Connections.",
+    badCode: "Enter the confirmation code Yandex showed you.",
+    codeRefused: (reason: string) => `Yandex did not accept the code: ${reason}. Get a new code and try again.`,
+    noLink: "This site has no Yandex Webmaster host or Metrika counter linked. Pick them in Site settings.",
+    noWebmaster: "This site has no Yandex Webmaster host linked.",
+    noMetrika: "This site has no Metrika counter linked.",
+    unknownHost: "This Yandex account has no such Webmaster host.",
+    unknownCounter: "This Yandex account has no such Metrika counter.",
+    unknownGoal: "The counter has no such goal.",
+    badBody: "Send webmasterHostId, metrikaCounterId and goalIds (a list), each optional; null clears one.",
+  },
+  connection: {
+    name: "Yandex",
+    description: "Yandex Webmaster (indexing, quality index, search queries, problems) and Yandex Metrika (visits, sources, goals). Read-only.",
+    connected: "Connected",
+    notConnected: "Not connected",
+    notConfigured: "Not configured",
+    connect: "Connect",
+    reconnect: "Connect again",
+    disconnect: "Disconnect",
+    confirmDisconnect: "Disconnect Yandex",
+    disconnectNote: "Every site loses its Webmaster host and Metrika counter, and the Yandex data synced for your sites is deleted. The token is revoked at Yandex.",
+    cancel: "Cancel",
+    step1: "1. Click Connect: Yandex opens in a new tab. Sign in with the account that has your sites in Webmaster and Metrika, and allow access.",
+    step2: "2. Yandex shows a confirmation code. Paste it here.",
+    codeLabel: "Confirmation code",
+    submit: "Save",
+    saving: "Checking…",
+    as: (login: string) => `Connected as ${login}`,
+    asUnknown: "Connected",
+    expires: (when: string) => `token valid until ${when}`,
+    since: (when: string) => `since ${when}`,
+    notConfiguredHelp: "The operator of this instance sets YANDEX_CLIENT_ID and YANDEX_CLIENT_SECRET (a Yandex OAuth app of the API access type) to turn this on.",
+  },
+  site: {
+    title: "Yandex Webmaster and Metrika",
+    description: "Pick the Webmaster host and the Metrika counter of this site. The first sync loads 90 days of Metrika and the history Webmaster keeps; then a sync runs every day.",
+    notConnected: "Yandex is not connected.",
+    connectLink: "Connect Yandex in Settings",
+    host: "Webmaster host",
+    counter: "Metrika counter",
+    goals: "Goals to track",
+    none: "None",
+    load: "Load from Yandex",
+    loading: "Loading…",
+    suggested: "matches this site",
+    unverified: "not verified",
+    noGoals: "This counter has no goals.",
+    save: "Save",
+    sync: "Sync now",
+    saved: "Saved. The first sync is running.",
+    savedNoSync: "Saved.",
+    syncing: "Syncing…",
+    queued: "Queued…",
+    synced: (r: { webmasterDays?: number; queryWeeks?: number; metrikaDays?: number }) =>
+      `Synced: ${r.webmasterDays ?? 0} Webmaster day(s), ${r.queryWeeks ?? 0} query week(s), ${r.metrikaDays ?? 0} Metrika day(s).`,
+    partly: (failed: string[]) => `Some parts failed: ${failed.join("; ")}`,
+    lastSync: (what: string, when: string) => `${what} updated ${when}`,
+    never: "no data yet",
+  },
+  page: {
+    title: "Yandex",
+    description: "Visits from Yandex Metrika and the site's state in Yandex Webmaster.",
+    period: (days: number) => `Last ${days} days`,
+    vsPrevious: "vs the previous period",
+    noLinkTitle: "Yandex is not linked to this site",
+    noLinkDescription: "Connect Yandex in Settings, then pick the Webmaster host and the Metrika counter in Site settings.",
+    noLinkAction: "Open site settings",
+    noDataTitle: "No Yandex data yet",
+    noDataDescription: "The first sync is queued or running. Reload in a minute, or run Sync now in Site settings.",
+    metrika: "Metrika",
+    webmaster: "Webmaster",
+    notLinkedMetrika: "No Metrika counter linked.",
+    notLinkedWebmaster: "No Webmaster host linked.",
+    updated: (when: string) => `updated ${when}`,
+    syncError: (what: string, error: string) => `Last ${what} sync failed: ${error}`,
+  },
+  cards: {
+    visits: "Visits",
+    users: "Users per day",
+    yandexSearch: "Visits from Yandex search",
+    goals: "Goal reaches",
+    sqi: "SQI",
+    searchable: "Pages in search",
+    excluded: "Excluded pages",
+    problems: "Site problems",
+    noChange: "No change",
+    noPrevious: "No earlier data",
+    change: (delta: string) => `${delta} vs previous`,
+    asOf: (date: string) => `as of ${date}`,
+  },
+  chart: {
+    title: "Visits by traffic source",
+    empty: "The chart shows once there are two days of Metrika data.",
+  },
+  sources: {
+    organic: "Search",
+    ad: "Ads",
+    direct: "Direct",
+    referral: "Links",
+    internal: "Internal",
+    social: "Social",
+    email: "Email",
+    messenger: "Messengers",
+    recommend: "Recommendations",
+    saved: "Saved pages",
+    external: "External",
+    qrcode: "QR codes",
+    null: "Not determined",
+    undefined: "Not determined",
+    other: "Other",
+  } as Record<string, string>,
+  engines: {
+    title: "Search visits by search engine",
+    none: "No search visits in this period.",
+  },
+  goals: {
+    title: "Goals",
+    none: "No goals tracked. Pick them in Site settings.",
+    goal: "Goal",
+    reaches: "Reaches",
+  },
+  queries: {
+    title: "Top search queries in Yandex",
+    week: (from: string, to: string) => `Week ${from} to ${to}`,
+    query: "Query",
+    shows: "Shows",
+    clicks: "Clicks",
+    ctr: "CTR",
+    position: "Avg. position",
+    clickPosition: "Avg. click position",
+    none: "No query data yet.",
+  },
+  problems: {
+    title: "Webmaster problems",
+    none: "Webmaster reports no problems.",
+    severity: {
+      FATAL: "Fatal",
+      CRITICAL: "Critical",
+      POSSIBLE_PROBLEM: "Possible problem",
+      RECOMMENDATION: "Recommendation",
+    } as Record<string, string>,
+    sitemaps: "Sitemaps",
+    sitemapLine: (urls: number | null, errors: number | null) =>
+      `${urls ?? "?"} URL(s)${errors ? `, ${errors} error(s)` : ""}`,
+  },
+  project: {
+    title: "Yandex",
+    description: "Your sites of this project with Yandex linked: the last 28 days against the 28 before.",
+    open: "Open",
+    none: "None of your sites in this project has Yandex linked yet.",
+  },
+} as const;
+
+/** A traffic source id as people read it. */
+export function sourceLabel(id: string, name?: string): string {
+  return YANDEX_UI.sources[id] ?? (name || id);
+}
+
+/** A problem code as people read it: SLOW_AVG_RESPONSE_TIME becomes "Slow avg response time". */
+export function problemLabel(code: string): string {
+  const words = code.toLowerCase().replace(/_/g, " ");
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}

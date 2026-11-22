@@ -8,6 +8,10 @@
     "ssl.bing.com": "Bing Webmaster Tools API, only with the user's own key",
     "api.dataforseo.com": "DataForSEO API, only with the user's own key",
     "labrika.ru": "Labrika Public API (agency fork rank provider, lib/rank-providers/labrika), only with the user's own key; also the help link in Settings > Rank tracking",
+    "oauth.yandex.ru": "Yandex OAuth (agency fork, lib/yandex): the authorize page the user opens for a confirmation code, the code and refresh token exchange, and the revoke on disconnect; only with YANDEX_CLIENT_ID and YANDEX_CLIENT_SECRET set and a user who connects Yandex",
+    "login.yandex.ru": "Yandex ID (agency fork): the login of the connected Yandex account, read once when connecting",
+    "api.webmaster.yandex.net": "Yandex Webmaster API (agency fork), read only, with the user's own Yandex token",
+    "api-metrika.yandex.net": "Yandex Metrika Management and Reporting API (agency fork), read only, with the user's own Yandex token",
     "suggestqueries.google.com": "Google autocomplete keyword suggestions",
     "api.github.com": "Daily update check (CRAWLSEO_UPDATE_CHECK=false turns it off)"
   },

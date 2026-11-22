@@ -54,6 +54,7 @@ The app talks to outside services only in these cases:
 | Bing Webmaster Tools | Only if you add your own Bing API key; then also a sync per site each day | Requests for your own Bing sites | Remove the key in Settings > Connections, or `SCHEDULE_BING_SYNC_HOURS=0` |
 | DataForSEO | Only if you add your own DataForSEO key | The keyword and domain queries you run | Remove the key in Settings > Connections |
 | Labrika (agency fork, a rank provider) | Only if you add your own Labrika API key in Settings > Rank tracking and link a Labrika search engine to a site; then also a rank sync per site each day | Read requests for your own Labrika rank tracking projects: their check dates and positions | Remove the key in Settings > Rank tracking, or `SCHEDULE_RANK_SYNC_HOURS=0`. CSV imports and positions pushed through `/api/v1` contact no one |
+| Yandex Webmaster and Yandex Metrika (agency fork) | Only if the operator sets `YANDEX_CLIENT_ID` and `YANDEX_CLIENT_SECRET` and you connect Yandex in Settings > Connections: the code exchange and token refresh with Yandex OAuth, your Yandex login once, and once you link a Webmaster host or Metrika counter to a site, a sync per site each day | Read requests for your own Webmaster hosts (summary, indexing and SQI history, popular queries, problems, sitemaps) and Metrika counters (counters, goals, daily visits by source and search engine, goal reaches); Disconnect also revokes the token | Disconnect Yandex in Settings > Connections, or `SCHEDULE_YANDEX_SYNC_HOURS=0` for the schedule |
 | Google autocomplete | Keyword suggestions when DataForSEO is not set up | The seed keyword you typed | Don't use keyword suggestions |
 | Sites you crawl | When you start a crawl, and on the schedule a crawl of each site each week, or as often as you set in Settings > Schedule (Docker) | Normal HTTP requests from your server, to the site and to the addresses its redirects point to | Don't start a crawl; for the schedule: crawls Off in Settings > Schedule, `SCHEDULE_CRAWL_DAYS=0` or `SCHEDULER_ENABLED=false` |
 | Your alert webhook | Only if you set a webhook URL in Settings > Alert webhook: when alerts fire, and when you click Send test | A signed JSON POST with the alerts that fired (type, message, site id and domain), to your own URL only | Remove the webhook in Settings; `ALERT_WEBHOOKS_ENABLED=false` turns webhooks off for the whole instance |
@@ -62,7 +63,7 @@ The app talks to outside services only in these cases:
 
 Nothing else leaves your server. Alerts are shown in the app, sent to your webhook if you set one, and emailed through the operator's own SMTP server if you turn that on. Nothing goes through a crawlseo service.
 
-The hosts behind these rows are `accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`, `searchconsole.googleapis.com`, `ssl.bing.com`, `api.dataforseo.com`, `labrika.ru`, `suggestqueries.google.com` and `api.github.com`, plus the sites you crawl, the webhook URL you set yourself and the SMTP server the operator sets in `SMTP_HOST`. The list the tests check new code against is [`outbound-hosts.json`](outbound-hosts.json). Your Google profile picture, if you have one, is loaded by your browser from Google, not by the server.
+The hosts behind these rows are `accounts.google.com`, `oauth2.googleapis.com`, `www.googleapis.com`, `searchconsole.googleapis.com`, `ssl.bing.com`, `api.dataforseo.com`, `labrika.ru`, `oauth.yandex.ru`, `login.yandex.ru`, `api.webmaster.yandex.net`, `api-metrika.yandex.net`, `suggestqueries.google.com` and `api.github.com`, plus the sites you crawl, the webhook URL you set yourself and the SMTP server the operator sets in `SMTP_HOST`. The list the tests check new code against is [`outbound-hosts.json`](outbound-hosts.json). Your Google profile picture, if you have one, is loaded by your browser from Google, not by the server.
 
 ## Features
 
@@ -197,6 +198,7 @@ Tested end to end with Claude Code.
 | `push_positions` | Agency fork, a write tool: stores positions you collected under a source name of yours; needs a write-scoped key |
 | `list_projects`, `get_project` | Agency fork: client projects you are a member of, with the passport, notes, tasks, journal and files |
 | `get_project_budget`, `get_rank_usage` | Agency fork: a project's budget and rank check usage. See [docs/agency/rank-settings-and-budget.md](docs/agency/rank-settings-and-budget.md) |
+| `get_yandex_webmaster`, `get_yandex_metrika` | Agency fork: a site's Yandex Webmaster state (SQI, pages in search, problems, top queries) and Yandex Metrika visits (sources, search engines, goals) against the previous period. See [docs/agency/yandex.md](docs/agency/yandex.md) |
 | `create_project`, `upsert_note`, `add_journal_entry`, `upsert_task`, `add_budget_entry` | Agency fork, write tools for client projects; need a write-scoped key. See [docs/agency/projects.md](docs/agency/projects.md) |
 
 The MCP talks only to your own instance, so it adds no outside service to [Your data stays yours](#your-data-stays-yours).
@@ -586,6 +588,8 @@ There is no long-running process on Vercel, so:
 | `SCHEDULE_RANK_SYNC_HOURS` | No | Agency fork: hours between rank syncs of a site with a linked rank provider engine such as Labrika (default `24`, `0` turns them off). The older `SCHEDULE_LABRIKA_SYNC_HOURS` is still read when this one is not set |
 | `UPLOADS_DIR` | No | Agency fork: where client project files are stored (default `/data/uploads`); mount a volume there. See [docs/agency/projects.md](docs/agency/projects.md) |
 | `CRAWLSEO_ADMIN_EMAILS` | No | Agency fork: comma-separated emails that act as owners of every client project |
+| `YANDEX_CLIENT_ID`, `YANDEX_CLIENT_SECRET` | No | Agency fork: a Yandex OAuth app of the "API access" type (redirect URI `https://oauth.yandex.ru/verification_code`) with Webmaster and Metrika read access; turns on Settings > Connections > Yandex. See [docs/agency/yandex.md](docs/agency/yandex.md) |
+| `SCHEDULE_YANDEX_SYNC_HOURS` | No | Agency fork: hours between Yandex syncs of a site with a Webmaster host or Metrika counter linked (default `24`, `0` turns them off) |
 | `SCHEDULE_CRAWL_DAYS` | No | Days between scheduled crawls of a site (default `7`, `0` turns them off). Each user can set their own interval in Settings > Schedule; `0` here keeps crawls off for everyone. Docker only |
 | `SCHEDULE_VITALS_DAYS` | No | Days between scheduled vitals checks of a site (default `7`, `0` turns them off). Each user can set their own interval in Settings > Schedule; `0` here keeps them off for everyone. Docker only |
 | `ALERT_WEBHOOKS_ENABLED` | No | Set to `false` to turn alert webhooks off for the instance: nothing is sent and Settings shows no webhook form. See [Alert webhooks](#alert-webhooks) |

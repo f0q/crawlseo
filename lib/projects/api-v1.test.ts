@@ -236,10 +236,12 @@ describe("files", () => {
 
 describe("journal and tasks", () => {
   it("adds an entry once, with the key as the agent author", async () => {
-    const entry = { date: "2026-11-19", text: "Published llms.txt", link: "https://quilltab.app/llms.txt", siteId: "site-a" };
+    // Today: newer than the fixture's entry two days ago, whatever day the test runs.
+    const today = new Date().toISOString().slice(0, 10);
+    const entry = { date: today, text: "Published llms.txt", link: "https://quilltab.app/llms.txt", siteId: "site-a" };
     const first = await post("/projects/quilltab/journal", entry, keys.editor);
     expect(first.status).toBe(201);
-    expect(first.body.entry).toMatchObject({ date: "2026-11-19", authorKind: "agent", author: "editor@quilltab.app (key agent)" });
+    expect(first.body.entry).toMatchObject({ date: today, authorKind: "agent", author: "editor@quilltab.app (key agent)" });
     expect((await post("/projects/quilltab/journal", entry, keys.editor)).body).toMatchObject({ created: false });
     expect((await post("/projects/quilltab/journal", { text: "x", siteId: "site-b" })).body.error).toMatch(/not a site of this project/);
     expect((await post("/projects/quilltab/journal", { text: "x", date: "2026-02-30" })).body.error).toMatch(/YYYY-MM-DD/);
