@@ -436,7 +436,7 @@ export const PROJECT_MESSAGES = {
     total: "Total",
     used: (p: number | null) => (p === null ? "no plan" : `${p}% used`),
     over: "over plan",
-    entries: "Spending",
+    entries: "Add spending",
     noEntries: "No spending this month.",
     date: "Date",
     amount: "Amount",

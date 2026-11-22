@@ -166,9 +166,12 @@ function HomeRowView({ row, attention }: { row: HomeRow; attention: boolean }) {
         <span className="md:hidden">{H.tasks}: </span>
         {H.openTasks(p.openTasks, row.review)}
       </div>
-      <p className="line-clamp-2 hidden text-[12px] leading-5 text-muted-foreground md:block">
-        {row.lastEntry ? `${formatDay(row.lastEntry.date, { year: true })}: ${row.lastEntry.text}` : T.noJournal}
-      </p>
+      <div className="hidden md:block">
+        {/* line-clamp needs display:-webkit-box, so md:block lives on the wrapper */}
+        <p className="line-clamp-2 text-[12px] leading-5 text-muted-foreground" title={row.lastEntry?.text}>
+          {row.lastEntry ? `${formatDay(row.lastEntry.date, { year: true })}: ${row.lastEntry.text}` : T.noJournal}
+        </p>
+      </div>
     </li>
   );
 }
