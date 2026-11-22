@@ -17,6 +17,9 @@ import { instanceOrigin } from "@/lib/instance-origin";
 import { mcpStatus } from "@/lib/mcp-settings";
 import { getScheduleSettings, scheduleServerInfo } from "@/lib/user-settings";
 import { webhookStatus } from "@/lib/webhooks/status";
+import { yandexStatus } from "@/lib/yandex/connection";
+import { yandexAuthorizeUrl, yandexCredentials } from "@/lib/yandex/oauth";
+import { YandexConnectionRow } from "@/components/yandex/connection-row";
 
 /** Granted scopes from `User.googleTokens`, which keeps them in plain text next to the encrypted tokens. */
 function grantedScopes(stored: unknown): string[] {
@@ -57,13 +60,15 @@ export default async function SettingsPage({ searchParams }: Props) {
   if (!user) redirect("/login");
 
   const connected = hasToken(user.googleTokens);
-  const [keys, schedule, webhook, email, mcp] = await Promise.all([
+  const [keys, schedule, webhook, email, mcp, yandex] = await Promise.all([
     apiKeyStatus(db, session.user.id),
     getScheduleSettings(db, session.user.id),
     webhookStatus(db, session.user.id),
     emailStatus(db, session.user.id),
     mcpStatus(db, session.user.id),
+    yandexStatus(db, session.user.id),
   ]);
+  const yandexCreds = yandexCredentials();
   const mcpEndpoint = `${await instanceOrigin()}/mcp`;
   const registrationClosed =
     process.env.DISABLE_REGISTRATION?.trim().toLowerCase() === "true";
@@ -116,6 +121,12 @@ export default async function SettingsPage({ searchParams }: Props) {
             }}
             initialStatus={keys}
             initialOpen={initialOpen}
+            extraRows={
+              // Agency fork: Yandex Webmaster and Metrika (lib/yandex).
+              <YandexConnectionRow
+                initial={{ ...yandex, authorizeUrl: yandexCreds ? yandexAuthorizeUrl(yandexCreds.clientId) : null }}
+              />
+            }
           />
         </section>
 

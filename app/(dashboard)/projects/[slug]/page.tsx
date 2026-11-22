@@ -22,6 +22,7 @@ import { TasksSection } from "@/components/projects/tasks-section";
 import { BudgetSection } from "@/components/projects/budget-section";
 import { RankSettingsSection } from "@/components/projects/rank-settings-section";
 import { StatusBadge } from "@/components/projects/ui";
+import { YandexProjectCards, yandexProjectSites } from "@/components/yandex/project-cards";
 
 const TABS = ["passport", "brief", "sites", "tasks", "journal", "rank", "budget"] as const;
 type Tab = (typeof TABS)[number];
@@ -75,7 +76,14 @@ export default async function ProjectPage({
     const linkable = canEdit
       ? await db.site.findMany({ where: { userId: actor.userId, projectId: null }, select: { id: true, domain: true }, orderBy: { domain: "asc" } })
       : [];
-    body = <SitesSection slug={slug} sites={sites} linkable={linkable} canEdit={canEdit} />;
+    const yandex = await yandexProjectSites(db, sites.filter((s) => s.yours));
+    body = (
+      <div className="flex flex-col gap-5">
+        <SitesSection slug={slug} sites={sites} linkable={linkable} canEdit={canEdit} />
+        {/* Agency fork: Yandex cards of the viewer's own sites (lib/yandex). */}
+        <YandexProjectCards reports={yandex} />
+      </div>
+    );
   } else if (tab === "tasks") {
     const { tasks } = await listTasks(actor, slug);
     body = <TasksSection slug={slug} tasks={tasks} canEdit={canEdit} />;

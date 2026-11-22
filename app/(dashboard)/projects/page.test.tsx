@@ -61,7 +61,7 @@ describe("projects pages", () => {
   it("renders every tab of a project", async () => {
     expect(await page()).toMatch(/Passport[\s\S]*QUILLTAB_PANEL_PASS[\s\S]*Members[\s\S]*Delete project/);
     expect(await page("brief")).toMatch(/Grow organic sign-ups[\s\S]*Files/);
-    expect(await page("sites")).toMatch(/quilltab\.app[\s\S]*Remove from project/);
+    expect(await page("sites")).toMatch(/quilltab\.app[\s\S]*Remove from project[\s\S]*Visits from Yandex search[\s\S]*SQI/);
     expect(await page("tasks")).toContain("Fix titles");
     expect(await page("journal")).toContain("Audited the titles");
     expect(await page("rank")).toMatch(/Start checks for this project[\s\S]*None \(Search Console or other data only\)[\s\S]*0 checks per month[\s\S]*All projects this month[\s\S]*No run yet/);
@@ -74,6 +74,8 @@ describe("projects pages", () => {
     expect(html).toContain("You can view this project");
     expect(html).not.toContain("Delete project");
     expect(await page("tasks")).not.toContain("Add task");
+    // A viewer sees the domain of a site, not its Yandex data.
+    expect(await page("sites")).toContain("None of your sites in this project has Yandex linked yet.");
     expect(await page("rank")).toContain("You can view these settings");
     expect(await page("budget")).not.toContain("Save plan");
     await expect(page(undefined, "secret-b")).rejects.toThrow("not found");

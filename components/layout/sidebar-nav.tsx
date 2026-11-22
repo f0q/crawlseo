@@ -19,9 +19,11 @@ import {
   SearchCheck,
   TrendingUp,
   FolderKanban,
+  BarChart3,
   type LucideIcon,
 } from "lucide-react";
 import { PROJECT_MESSAGES } from "@/lib/projects/messages";
+import { YANDEX_UI } from "@/lib/yandex/messages";
 
 type NavItem = {
   href: string;
@@ -56,6 +58,8 @@ export function SidebarNav({
           { href: `/sites/${activeSiteId}/saved-keywords`, label: "Saved keywords", icon: Bookmark },
           // Agency fork: rank tracking positions (lib/rank-providers).
           { href: `/sites/${activeSiteId}/positions`, label: "Positions", icon: TrendingUp },
+          // Agency fork: Yandex Metrika and Webmaster (lib/yandex).
+          { href: `/sites/${activeSiteId}/yandex`, label: YANDEX_UI.nav, icon: BarChart3 },
           { href: `/sites/${activeSiteId}/pages`, label: "Pages", icon: FileText },
           { href: `/sites/${activeSiteId}/crawl`, label: "Crawl / Audit", icon: Bug },
           { href: `/sites/${activeSiteId}/vitals`, label: "Vitals", icon: Gauge },

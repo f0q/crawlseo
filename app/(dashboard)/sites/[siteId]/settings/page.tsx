@@ -9,6 +9,8 @@ import { RankSourcesSection } from "@/components/rank-tracking/rank-sources-sect
 import { linkedEngines } from "@/lib/rank-providers/links";
 import { listRankProviders, rankProviderIds } from "@/lib/rank-providers/registry";
 import { formatDay } from "@/lib/format";
+import { siteLink } from "@/lib/yandex/links";
+import { YandexSiteSection } from "@/components/yandex/site-section";
 
 interface Props {
   params: Promise<{ siteId: string }>;
@@ -46,12 +48,15 @@ export default async function SettingsPage({ params }: Props) {
     select: { id: true },
   });
   // Agency fork: rank sources (lib/rank-providers).
-  const [rankKeys, rankEngines] = await Promise.all([
+  const [rankKeys, rankEngines, yandexLink, yandexConnection] = await Promise.all([
     db.apiKey.findMany({
       where: { userId: session.user.id, provider: { in: rankProviderIds() } },
       select: { provider: true },
     }),
     linkedEngines(db, siteId),
+    // Agency fork: Yandex Webmaster and Metrika (lib/yandex).
+    siteLink(db, siteId),
+    db.yandexConnection.findUnique({ where: { userId: session.user.id }, select: { id: true } }),
   ]);
   const rankProviders = listRankProviders().map((p) => ({
     id: p.id,
@@ -109,6 +114,9 @@ export default async function SettingsPage({ params }: Props) {
             </Link>
           </p>
         )}
+
+        {/* Yandex Webmaster and Metrika (agency fork) */}
+        <YandexSiteSection siteId={siteId} domain={site.domain} connected={yandexConnection !== null} initial={yandexLink} />
 
         {/* Rank tracking (agency fork): provider engines, CSV imports, pushed positions */}
         <RankSourcesSection siteId={siteId} domain={site.domain} linked={rankEngines} providers={rankProviders} />

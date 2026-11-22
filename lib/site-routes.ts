@@ -10,6 +10,8 @@ export const SITE_SUB_PAGES = [
   "keywords",
   "saved-keywords",
   "positions",
+  // Agency fork: Yandex Metrika and Webmaster (lib/yandex).
+  "yandex",
   "pages",
   "crawl",
   "vitals",

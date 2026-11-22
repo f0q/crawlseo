@@ -11,6 +11,7 @@ const { auth, db, redirect } = vi.hoisted(() => ({
     accessKey: { findMany: vi.fn() },
     userSettings: { findUnique: vi.fn() },
     job: { findFirst: vi.fn() },
+    yandexConnection: { findUnique: vi.fn(async () => null) },
   },
   redirect: vi.fn((url: string) => {
     throw new Error(`REDIRECT ${url}`);

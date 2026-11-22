@@ -128,12 +128,15 @@ export function ConnectionsSection({
   google,
   initialStatus,
   initialOpen = null,
+  extraRows,
 }: {
   google: GoogleConnection;
   /** The body of GET /api/user/api-keys. */
   initialStatus: ApiKeyStatus;
   /** A provider whose form starts expanded, e.g. from a "Connect Bing" link. */
   initialOpen?: KeyProvider | null;
+  /** Agency fork: more rows at the end of the list, each an <li> (Yandex, components/yandex). */
+  extraRows?: React.ReactNode;
 }) {
   const [status, setStatus] = useState<ApiKeyStatus>(initialStatus);
   const [open, setOpen] = useState<KeyProvider | null>(
@@ -162,6 +165,7 @@ export function ConnectionsSection({
           onStatusChange={markConnected}
         />
       ))}
+      {extraRows}
     </ul>
   );
 }
