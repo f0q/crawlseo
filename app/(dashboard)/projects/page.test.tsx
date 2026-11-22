@@ -27,6 +27,7 @@ import { seedApiFixtures } from "@/lib/testing/api-fixtures";
 import { createTestDb, type TestDb } from "@/lib/testing/pglite";
 import ProjectsPage from "./page";
 import ProjectPage from "./[slug]/page";
+import SourcesPage from "./sources/page";
 
 let t: TestDb;
 
@@ -51,13 +52,19 @@ describe("projects pages", () => {
     const html = renderToString(await ProjectsPage());
     expect(html).toContain("Quilltab");
     expect(html).toContain("quilltab.app");
-    expect(html).toContain("1 open task");
+    expect(html).toContain("1 open");
     expect(html).toContain("Audited the titles");
+    // Agency fork UX step 2: a table with the data sources of each project and a link to the panel.
+    expect(html).toContain('href="/projects/sources"');
+    expect(html).toMatch(/aria-label="Data sources: Positions \(paid\)|aria-label="Data sources: Positions:/);
     // Agency fork UX step 1: no All sites button while every site is in a project.
     expect(html).not.toContain('href="/sites"');
     expect(html).not.toContain("Sites without a project");
     expect(html).not.toContain("Secret B");
-    expect(html).toMatch(/Budgets this month[\s\S]*0 of 0 RUB[\s\S]*Labrika: 0 checks a month planned, 0 started this month, limit 5000/);
+    // Nothing planned or spent: no summary line.
+    expect(html).not.toContain("Spending this month");
+    // Quilltab's Yandex link has no Yandex connection behind it: it needs attention.
+    expect(html).toMatch(/Needs attention[\s\S]*Quilltab[\s\S]*source[s]? failing/);
   });
 
   it("groups projects by group and lists the user's sites outside every project", async () => {
@@ -65,7 +72,7 @@ describe("projects pages", () => {
     await t.db.project.create({ data: { id: "proj-g", slug: "grouped", name: "Grouped one", group: "Centro Adelante", ownerId: "user-a", members: { create: { userId: "user-a", role: "owner" } } } });
     await t.db.site.create({ data: { id: "site-orphan", userId: "user-a", domain: "orphan.example" } });
     const html = renderToString(await ProjectsPage());
-    expect(html).toMatch(/Centro Adelante[\s\S]*Grouped one[\s\S]*Other projects[\s\S]*Quilltab[\s\S]*Sites without a project[\s\S]*href="\/sites\/site-orphan"/);
+    expect(html).toMatch(/Needs attention[\s\S]*Quilltab[\s\S]*Centro Adelante[\s\S]*Grouped one[\s\S]*Sites without a project[\s\S]*href="\/sites\/site-orphan"/);
     expect(html).toContain('href="/sites"');
     await t.db.site.delete({ where: { id: "site-orphan" } });
     await t.db.project.delete({ where: { id: "proj-g" } });
@@ -80,7 +87,17 @@ describe("projects pages", () => {
     expect(await page("tasks")).toContain("Fix titles");
     expect(await page("journal")).toContain("Audited the titles");
     expect(await page("rank")).toMatch(/Start checks for this project[\s\S]*None \(Search Console or other data only\)[\s\S]*0 checks per month[\s\S]*All projects this month[\s\S]*No run yet/);
-    expect(await page("budget")).toMatch(/0 of 0 RUB[\s\S]*work[\s\S]*No spending this month[\s\S]*Last 6 months/);
+    expect(await page("budget")).toMatch(/Money[\s\S]*Client payment[\s\S]*Payments are not tracked[\s\S]*Spending[\s\S]*0 of 0 RUB[\s\S]*work[\s\S]*No spending this month[\s\S]*Last 6 months/);
+    expect(await page()).toMatch(/Data<\/h2>[\s\S]*Search Console/);
+  });
+
+  it("the data sources panel lists every project against every source, with totals", async () => {
+    holder.user = { id: "user-a", email: "a@quilltab.app" };
+    const html = renderToString(await SourcesPage());
+    expect(html).toMatch(/Data sources[\s\S]*Positions[\s\S]*Search Console[\s\S]*Yandex Webmaster[\s\S]*Yandex Metrika[\s\S]*Crawl[\s\S]*Speed \(CWV\)/);
+    expect(html).toMatch(/id="p-quilltab"[\s\S]*Quilltab[\s\S]*quilltab\.app/);
+    expect(html).toMatch(/Total[\s\S]*of 1 ok/);
+    expect(html).not.toContain("Secret B");
   });
 
   it("is read-only for a viewer, and another user's project is not found", async () => {
@@ -94,6 +111,7 @@ describe("projects pages", () => {
     expect(await page("sites")).toContain("None of your sites in this project has Yandex linked yet.");
     expect(await page("rank")).toContain("You can view these settings");
     expect(await page("budget")).not.toContain("Save plan");
+    expect(await page("budget")).toContain("Editors and owners change the payment dates.");
     await expect(page(undefined, "secret-b")).rejects.toThrow("not found");
   });
 });

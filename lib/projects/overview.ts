@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { getSitePeriodMetrics } from "@/lib/seo-metrics";
 import { metrikaReport, webmasterReport, type Compare } from "@/lib/yandex/report";
 import { getProject, listJournal, listTasks } from "./service";
+import { sourcesMatrix } from "./sources";
 import type { Actor } from "./access";
 import type { TaskStatus } from "./schema";
 
@@ -45,7 +46,13 @@ export type OverviewAlert = { id: string; siteId: string; domain: string; type: 
 
 export async function projectOverview(actor: Actor, slug: string, now = new Date()) {
   const { project, sites, counts } = await getProject(actor, slug);
-  const [{ tasks }, { entries }] = await Promise.all([listTasks(actor, slug), listJournal(actor, slug, { limit: 50 })]);
+  const [{ tasks }, { entries }, matrix] = await Promise.all([
+    listTasks(actor, slug),
+    listJournal(actor, slug, { limit: 50 }),
+    // Agency fork UX step 2: the project's line of the data sources panel, with its billing state.
+    sourcesMatrix(actor, { slug, now }),
+  ]);
+  const sources = matrix.projects[0] ?? null;
 
   const open = tasks
     .filter((t) => t.status !== "done")
@@ -129,6 +136,7 @@ export async function projectOverview(actor: Actor, slug: string, now = new Date
       (a): OverviewAlert => ({ id: a.id, siteId: a.siteId, domain: domainOf.get(a.siteId) ?? "", type: a.type, lastFired: a.lastFired!.toISOString() })
     ),
     sites: siteRows,
+    sources,
     rank: {
       enabled: rank?.enabled ?? false,
       source: rank?.source ?? "none",

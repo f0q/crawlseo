@@ -5,6 +5,7 @@ import { ApiError } from "@/lib/api-v1/params";
 import { getRankProvider, listRankProviders } from "@/lib/rank-providers/registry";
 import type { RankCabinetLogin, RankCheckTarget, RankProvider, RankProviderClientOptions } from "@/lib/rank-providers/types";
 import { isInstanceAdmin, projectFor, type Actor } from "./access";
+import { paidCollectionGuard } from "./collection";
 import { PROJECT_MESSAGES } from "./messages";
 import {
   checksPerMonth,
@@ -455,9 +456,11 @@ const NO_CABINET = "no-cabinet-login";
  * are off for the project: a disabled project never runs.
  */
 export async function runRankCheck(db: Db, projectId: string, opts: RunOptions) {
+  const now = opts.now ?? new Date();
+  // Agency fork: the one guard of paid collection (manual on/off, billing auto-pause, project status).
+  if (!(await paidCollectionGuard(db, projectId, now)).allowed) return null;
   const s = await db.projectRankSettings.findUnique({ where: { projectId } });
   if (!s?.enabled) return null;
-  const now = opts.now ?? new Date();
   const record = (data: Omit<Prisma.RankCheckRunUncheckedCreateInput, "projectId" | "provider" | "trigger">) =>
     db.rankCheckRun.create({ data: { projectId, provider: s.source, trigger: opts.trigger, createdBy: opts.createdBy ?? null, createdAt: now, ...data } });
 
@@ -530,6 +533,9 @@ export async function runRankCheck(db: Db, projectId: string, opts: RunOptions) 
 export async function startRankCheckNow(actor: Actor, slug: string, body: unknown) {
   const ref = await projectFor(actor, slug, "editor");
   const override = Boolean((body as { override?: unknown } | null)?.override === true);
+  const guard = await paidCollectionGuard(appDb, ref.id);
+  if (!guard.allowed && guard.reason === "status") throw new ApiError(400, M.errors.pausedByStatus);
+  if (!guard.allowed && guard.reason === "billing") throw new ApiError(400, M.errors.pausedByBilling);
   const s = await appDb.projectRankSettings.findUnique({ where: { projectId: ref.id } });
   if (!s?.enabled) throw new ApiError(400, M.errors.disabled);
   const provider = getRankProvider(s.source);
@@ -583,6 +589,8 @@ export async function dueRankProjects(db: Db, now: Date): Promise<string[]> {
   });
   const due: string[] = [];
   for (const s of enabled) {
+    // Paused or archived projects and projects whose paid collection is auto-paused are never due.
+    if (!(await paidCollectionGuard(db, s.projectId, now)).allowed) continue;
     const [success, attempt] = await Promise.all([
       db.rankCheckRun.findFirst({ where: { projectId: s.projectId, status: { in: SUCCESS } }, orderBy: { createdAt: "desc" }, select: { createdAt: true } }),
       db.rankCheckRun.findFirst({ where: { projectId: s.projectId, trigger: "schedule" }, orderBy: { createdAt: "desc" }, select: { createdAt: true, status: true } }),

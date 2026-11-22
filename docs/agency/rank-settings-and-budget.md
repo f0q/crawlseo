@@ -110,6 +110,12 @@ off. Otherwise it logs one `RankCheckRun`:
 "Start a check now" (dashboard, editors and owners) runs the same code as a
 `manual` run and needs checks turned on.
 
+Every start, scheduled or by hand, first goes through `paidCollectionGuard`
+(`lib/projects/collection.ts`): a paused or archived project, or one whose paid
+collection the billing rule paused, starts nothing and logs nothing. See
+[sources-and-billing.md](sources-and-billing.md). The Budget tab is now the
+Money tab (same link), with the client's payment above the spending.
+
 `SCHEDULE_RANK_CHECKS=false` turns the task off for the whole instance; the
 settings, usage and budget keep working.
 

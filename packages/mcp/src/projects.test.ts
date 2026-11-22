@@ -102,6 +102,11 @@ describe("project MCP tools", () => {
     expect(updated.text).toMatch(/^Updated project Italica \(slug: italica\)\.\nStatus: prospect[\s\S]*Group: Adelante/);
     expect((await call(client, "get_project", { slug: "italica" })).text).toMatch(/Group: Adelante/);
     expect((await call(client, "update_project", { slug: "italica", group: null })).text).not.toMatch(/Group:/);
+    // Agency fork UX step 2: client billing through update_project.
+    const billed = await call(client, "update_project", { slug: "italica", paidUntil: "2026-12-01", contractEnd: "2027-03-01", billingNeverPause: true });
+    expect(billed.isError, billed.text).toBe(false);
+    expect(billed.text).toMatch(/Paid until: 2026-12-01\nContract until: 2027-03-01\nNever pause paid collection: yes/);
+    expect((await call(client, "update_project", { slug: "italica", paidUntil: "soon" })).text).toMatch(/YYYY-MM-DD/);
     expect((await call(client, "update_project", { slug: "secret-b", group: "x" })).text).toBe("Project not found");
     await client.close();
   });

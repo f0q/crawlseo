@@ -20,6 +20,7 @@ import { ProjectForm } from "@/components/projects/project-form";
 import { SitesSection } from "@/components/projects/sites-section";
 import { TasksSection } from "@/components/projects/tasks-section";
 import { BudgetSection } from "@/components/projects/budget-section";
+import { BillingSection } from "@/components/projects/billing-section";
 import { RankSettingsSection } from "@/components/projects/rank-settings-section";
 import { StatusBadge } from "@/components/projects/ui";
 import { YandexProjectCards, yandexProjectSites } from "@/components/yandex/project-cards";
@@ -32,7 +33,7 @@ type Tab = (typeof TABS)[number];
 
 const iso = (d: Date) => d.toISOString();
 
-/** Agency fork: one client project, in tabs: overview (the default), tasks, journal, sites, rank tracking, budget, passport, brief and materials. */
+/** Agency fork: one client project, in tabs: overview (the default), tasks, journal, sites, rank tracking, money (client payment and spending), passport, brief and materials. */
 export default async function ProjectPage({
   params,
   searchParams,
@@ -105,7 +106,21 @@ export default async function ProjectPage({
   } else if (tab === "budget") {
     const month = MONTH_PATTERN.test(String(query.month)) ? String(query.month) : undefined;
     const data = await getBudget(actor, slug, month);
-    body = <BudgetSection key={`${data.month}-${data.currency}-${data.categories.join(",")}-${JSON.stringify(data.plan)}`} slug={slug} data={data} canEdit={canEdit} />;
+    // Agency fork UX step 2: the Money tab, the client's payment first, then the spending (the former Budget).
+    body = (
+      <div className="flex flex-col gap-5">
+        <BillingSection
+          key={`${project.paidUntil}-${project.contractEnd}-${project.billingNeverPause}`}
+          slug={slug}
+          paidUntil={project.paidUntil}
+          contractEnd={project.contractEnd}
+          neverPause={project.billingNeverPause}
+          pausedAt={project.paidPausedAt ? iso(project.paidPausedAt) : null}
+          canEdit={canEdit}
+        />
+        <BudgetSection key={`${data.month}-${data.currency}-${data.categories.join(",")}-${JSON.stringify(data.plan)}`} slug={slug} data={data} canEdit={canEdit} />
+      </div>
+    );
   } else {
     const { entries } = await listJournal(actor, slug, { limit: 500 });
     body = <JournalSection slug={slug} entries={entries} sites={sites} canEdit={canEdit} />;

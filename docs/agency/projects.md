@@ -193,6 +193,14 @@ write-scoped key:
 4. A new project from the agent (`/newproject`): `POST /api/v1/projects` or
    the MCP tool `create_project`.
 
+## Data sources and client billing
+
+`paidUntil`, `contractEnd` and `billingNeverPause` on a project (migration
+`20261126000000_agency_billing`), set with `PATCH /projects/{slug}` or the MCP
+tool `update_project`; a project whose status is `paused` or `archived` gets no
+scheduled collection. The data sources panel, the projects home and the
+billing rule: see [sources-and-billing.md](sources-and-billing.md).
+
 ## Rank tracking and budget
 
 Two more tabs, Rank tracking (whether and how often position checks are

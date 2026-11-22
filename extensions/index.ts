@@ -16,6 +16,7 @@
  * all routes, server actions and the job loop of that process.
  */
 
+import { registerProjectCollection } from "@/lib/projects/collection";
 import { registerRankChecks } from "@/lib/projects/rank-jobs";
 import { registerRankTracking } from "@/lib/rank-providers/jobs";
 import { registerYandex } from "@/lib/yandex/jobs";
@@ -32,4 +33,6 @@ export function registerExtensions(): void {
   registerRankChecks();
   // Agency fork: Yandex Webmaster and Metrika (lib/yandex), one sync job per linked site, daily.
   registerYandex();
+  // Agency fork: paused or archived projects get no scheduled collection; the daily billing rule pauses paid collection (lib/projects/collection.ts).
+  registerProjectCollection();
 }

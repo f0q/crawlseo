@@ -6,6 +6,7 @@ import * as budget from "./budget";
 import { rankUsageSummary, getRankSettings, listRankRuns, startRankCheckNow, updateProviderPlan, updateRankSettings } from "./rank";
 import { monthOf, MONTH_PATTERN } from "./rank-usage";
 import * as svc from "./service";
+import { sourcesMatrix } from "./sources";
 import { visibleProjects } from "./access";
 import { db } from "@/lib/db";
 import { MAX_UPLOAD_BYTES } from "./uploads";
@@ -34,6 +35,7 @@ import { MAX_UPLOAD_BYTES } from "./uploads";
  * GET   /projects/{slug}/tasks            ?updatedSince=&status=
  * POST  /projects/{slug}/tasks            upsert by id, or by externalKey
  * PATCH /projects/{slug}/tasks/{id}
+ * GET   /projects/_sources                the data sources of every project (?slug= for one): state, last sync, error, paid
  * GET   /projects/_summary                this month (?month=) of every project: budgets and rank check usage
  * GET   /projects/{slug}/rank-settings    settings, engines, planned usage, the limit, recent runs
  * PATCH /projects/{slug}/rank-settings    enabled, source, frequency, engineIds, override
@@ -139,6 +141,11 @@ export async function routeProjects(
     const visible = await db.project.findMany({ where: visibleProjects(actor), select: { id: true } });
     const [budgets, rank] = await Promise.all([budget.budgetSummary(actor, month), rankUsageSummary(db, month, new Set(visible.map((p) => p.id)))]);
     return json({ month, budget: budgets, rank });
+  }
+  // Agency fork UX step 2: the data sources matrix (lib/projects/sources.ts), ?slug= for one project.
+  if (slug === "_sources" && resource === undefined) {
+    if (method !== "GET") throw notAllowed();
+    return json(await sourcesMatrix(actor, { slug: params.get("slug") ?? undefined }));
   }
   if (slug === "_rank-plans" && resource === undefined) {
     if (method === "PATCH" && dashboard) return json({ plan: await updateProviderPlan(actor, await jsonBody(req)) });

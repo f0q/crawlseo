@@ -35,7 +35,7 @@ export const MAX_DOMAINS = 20;
 /** 2 to 48 of a-z, 0-9 and "-", not starting or ending with "-". */
 export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,46}[a-z0-9]$/;
 /** Words the projects pages use as path segments. */
-const RESERVED_SLUGS = new Set(["new", "api", "edit"]);
+const RESERVED_SLUGS = new Set(["new", "api", "edit", "sources"]);
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -108,7 +108,31 @@ export const createProjectSchema = z.object({
 });
 export type CreateProjectInput = z.input<typeof createProjectSchema>;
 
-export const updateProjectSchema = z.object(passportShape).partial();
+/** 2026-02-30 parses as a later day: only a day that reads back the same is one. */
+function realDay(v: string): boolean {
+  const t = Date.parse(`${v}T00:00:00Z`);
+  return !Number.isNaN(t) && new Date(t).toISOString().slice(0, 10) === v;
+}
+
+/** A day, YYYY-MM-DD; "" or null clears it. */
+const optionalDay = z
+  .string()
+  .trim()
+  .nullish()
+  .transform((v) => (v ? v : null))
+  .refine((v) => v === null || (DAY.test(v) && realDay(v)), M.errors.day);
+
+/** Agency fork: client billing (lib/projects/billing.ts), set with PATCH only. */
+const billingShape = {
+  /** The last paid day; null: billing is not tracked. */
+  paidUntil: optionalDay,
+  /** The last day of the contract. */
+  contractEnd: optionalDay,
+  /** true: the billing rule warns but never pauses paid collection. */
+  billingNeverPause: z.boolean(),
+};
+
+export const updateProjectSchema = z.object({ ...passportShape, ...billingShape }).partial();
 export type UpdateProjectInput = z.input<typeof updateProjectSchema>;
 
 const noteFields = {

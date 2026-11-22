@@ -27,6 +27,9 @@ type Passport = {
   hosting: string | null;
   contacts: string | null;
   accessNotes: string | null;
+  paidUntil?: string | null;
+  contractEnd?: string | null;
+  billingNeverPause?: boolean;
   role: string;
   updatedAt: string;
 };
@@ -94,6 +97,9 @@ function passportLines(p: Passport): string {
     ["Hosting", p.hosting],
     ["Contacts", p.contacts],
     ["Access notes", p.accessNotes],
+    ["Paid until", p.paidUntil ?? null],
+    ["Contract until", p.contractEnd ?? null],
+    ["Never pause paid collection", p.billingNeverPause ? "yes" : null],
   ];
   return rows.filter(([, v]) => v).map(([k, v]) => `${k}: ${v}`).join("\n");
 }
@@ -270,7 +276,7 @@ export function registerProjectTools(
     {
       title: "Update project",
       description:
-        "Changes passport fields of a client project: only the fields you pass; null or \"\" clears one. group lists projects with the same group together. accessNotes holds only where access lives, never a secret. Needs a key with the write scope and the editor role.",
+        "Changes passport fields of a client project: only the fields you pass; null or \"\" clears one. group lists projects with the same group together. accessNotes holds only where access lives, never a secret. paidUntil, contractEnd and billingNeverPause set the client's billing: 1 to 14 days overdue warns, later (or after the contract ends) paid rank checks pause until the dates move forward. Needs a key with the write scope and the editor role.",
       inputSchema: {
         slug,
         name: z.string().min(1).max(120).optional(),
@@ -284,6 +290,9 @@ export function registerProjectTools(
         hosting: z.string().nullable().optional(),
         contacts: z.string().nullable().optional(),
         accessNotes: z.string().nullable().optional(),
+        paidUntil: z.string().nullable().optional().describe("Client billing: the last paid day, YYYY-MM-DD; null stops tracking payments"),
+        contractEnd: z.string().nullable().optional().describe("Client billing: the last day of the contract, YYYY-MM-DD; null clears it"),
+        billingNeverPause: z.boolean().optional().describe("true: an overdue payment only warns, paid collection is never paused"),
       },
       annotations: UPSERT,
     },

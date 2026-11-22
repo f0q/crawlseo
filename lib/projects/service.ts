@@ -5,6 +5,7 @@ import { ensureDefaultAlerts } from "@/lib/alerts/evaluate";
 import { canAddSite, siteCreated } from "@/lib/site-policy";
 import { isPublicDomainName, siteDomainFromProperty } from "@/lib/site-domain";
 import { projectFor, rolesOf, visibleProjects, type Actor } from "./access";
+import { applyBillingRule } from "./billing";
 import { PROJECT_MESSAGES as M } from "./messages";
 import {
   addSitesSchema,
@@ -67,11 +68,24 @@ const PASSPORT = {
   hosting: true,
   contacts: true,
   accessNotes: true,
+  // Agency fork: client billing (./billing.ts); days as YYYY-MM-DD in the answers.
+  paidUntil: true,
+  contractEnd: true,
+  billingNeverPause: true,
+  paidPausedAt: true,
   createdAt: true,
   updatedAt: true,
 } as const;
 
-export type ProjectSummary = Prisma.ProjectGetPayload<{ select: typeof PASSPORT }> & {
+type PassportRow = Prisma.ProjectGetPayload<{ select: typeof PASSPORT }>;
+export type Passport = Omit<PassportRow, "paidUntil" | "contractEnd"> & { paidUntil: string | null; contractEnd: string | null };
+
+/** The passport as the API and the pages show it: billing days as YYYY-MM-DD. */
+function passportOut<T extends PassportRow>(p: T): Omit<T, "paidUntil" | "contractEnd"> & { paidUntil: string | null; contractEnd: string | null } {
+  return { ...p, paidUntil: day(p.paidUntil), contractEnd: day(p.contractEnd) };
+}
+
+export type ProjectSummary = Passport & {
   role: Role;
   sites: { id: string; domain: string }[];
   openTasks: number;
@@ -108,7 +122,7 @@ export async function listProjects(actor: Actor, opts: { updatedSince?: Date } =
   });
   const roles = await rolesOf(actor, rows.map((r) => r.id));
   return rows.map(({ journal, _count, ...p }) => ({
-    ...p,
+    ...passportOut(p),
     role: roles.get(p.id) ?? "viewer",
     openTasks: _count.tasks,
     lastJournal: journal[0] ? { date: day(journal[0].date)!, text: journal[0].text, author: journal[0].author } : null,
@@ -129,7 +143,7 @@ export async function getProject(actor: Actor, slug: string) {
   });
   const { sites, members, _count, ...passport } = p;
   return {
-    project: { ...passport, role: ref.role },
+    project: { ...passportOut(passport), role: ref.role },
     sites: sites.map(({ userId, ...s }) => ({ ...s, yours: userId === actor.userId })),
     members: members.map((m) => ({ userId: m.user.id, email: m.user.email, name: m.user.name, role: m.role })),
     counts: { notes: _count.notes, files: _count.files, journal: _count.journal, openTasks: _count.tasks },
@@ -205,8 +219,11 @@ export async function createProject(actor: Actor, body: unknown) {
 export async function updateProject(actor: Actor, slug: string, body: unknown) {
   const ref = await projectFor(actor, slug, "editor");
   const input = parse(updateProjectSchema, body);
-  const data = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined));
+  const data: Record<string, unknown> = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined));
+  for (const k of ["paidUntil", "contractEnd"] as const) if (typeof data[k] === "string") data[k] = toDay(data[k] as string);
   if (Object.keys(data).length) await db.project.update({ where: { id: ref.id }, data });
+  // Agency fork: a moved payment date or "never pause" pauses or resumes paid collection at once, not on the next pass.
+  if (["paidUntil", "contractEnd", "billingNeverPause"].some((k) => k in data)) await applyBillingRule(db, new Date(), { projectId: ref.id });
   return getProject(actor, slug);
 }
 

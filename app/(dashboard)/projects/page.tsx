@@ -1,50 +1,50 @@
 import Link from "next/link";
-import { ArrowRight, Plus } from "lucide-react";
+import { Activity, AlertTriangle, Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { formatDay } from "@/lib/format";
 import { sessionActor } from "@/lib/projects/dashboard";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
-import { listProjects } from "@/lib/projects/service";
-import { groupProjects, type NavSite } from "@/lib/projects/navigation";
 import { loadProjectNav } from "@/lib/projects/shell";
-import { budgetSummary } from "@/lib/projects/budget";
-import { rankUsageSummary } from "@/lib/projects/rank";
-import { formatMoney, monthOf } from "@/lib/projects/rank-usage";
-import { db } from "@/lib/db";
+import { projectsHome, type HomeReason, type HomeRow } from "@/lib/projects/home";
+import type { NavSite } from "@/lib/projects/navigation";
+import { formatMoney } from "@/lib/projects/rank-usage";
+import { SourceDots } from "@/components/projects/source-cells";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/projects/ui";
-import { PlanBar } from "@/components/projects/budget-section";
 
 const T = M.list;
+const H = M.home;
 
-/** Agency fork: the home after sign-in, every client project the user is a member of. */
+/**
+ * Agency fork: the home after sign-in (UX step 2). A table of exceptions:
+ * the projects that need attention and why, then the rest by group, the
+ * prospects, the paused and archived, and the user's sites outside every
+ * project (lib/projects/home.ts).
+ */
 export default async function ProjectsPage() {
   const session = await auth();
   const actor = sessionActor(session?.user);
-  const [projects, nav] = actor ? await Promise.all([listProjects(actor), loadProjectNav(actor)]) : [[], null];
+  const [home, nav] = actor ? await Promise.all([projectsHome(actor), loadProjectNav(actor)]) : [null, null];
   // Sites of the user that are in none of their projects: listed below, never hidden.
   const unassigned = nav?.unassigned ?? [];
-  const month = monthOf(new Date());
-  const [budgets, rank] =
-    actor && projects.length
-      ? await Promise.all([budgetSummary(actor, month), rankUsageSummary(db, month, new Set(projects.map((p) => p.id)))])
-      : [null, []];
-  const B = M.budget;
-  // A project's line of this month, when it has a plan or spending.
-  const groups = groupProjects(projects);
-  const budgetOf = new Map((budgets?.projects ?? []).filter((b) => b.plan > 0 || b.actual !== 0).map((b) => [b.slug, b]));
 
   const actions = (
-    <Link href="/projects/new" className={buttonVariants()}>
-      <Plus aria-hidden />
-      {T.newProject}
-    </Link>
+    <div className="flex flex-wrap gap-2">
+      <Link href="/projects/sources" className={buttonVariants({ variant: "outline" })}>
+        <Activity aria-hidden />
+        {H.sourcesLink}
+      </Link>
+      <Link href="/projects/new" className={buttonVariants()}>
+        <Plus aria-hidden />
+        {T.newProject}
+      </Link>
+    </div>
   );
 
-  if (projects.length === 0) {
+  if (!home || home.count === 0) {
     return (
       <div>
         <PageHeader title={T.title} description={T.description} actions={actions} />
@@ -60,71 +60,116 @@ export default async function ProjectsPage() {
     );
   }
 
+  const s = home.summary;
+  const summary = [
+    ...s.budgets.map((b) => H.summary.spent(formatMoney(b.actual), formatMoney(b.plan), b.currency)),
+    ...s.checks.map((c) => H.summary.checks(c.name, c.used, c.limit)),
+    ...(s.overdue ? [H.summary.overdue(s.overdue)] : []),
+  ];
+
   return (
     <div>
-      <PageHeader title={T.title} meta={T.meta(projects.length)} actions={actions} />
-      {budgets && (
-        <section aria-labelledby="budget-summary" className="panel mb-5 p-5">
-          <h2 id="budget-summary" className="mb-3 text-[15px] font-medium text-text-strong">
-            {B.summaryTitle} <span className="font-data text-[12px] text-muted-foreground">{month}</span>
-          </h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              {budgets.totals.map((t) => (
-                <div key={t.currency} className="flex flex-col gap-1">
-                  <p className="text-[14px] text-text-strong">{B.summaryLine(formatMoney(t.plan), formatMoney(t.actual), t.currency, t.percent)}</p>
-                  <PlanBar plan={t.plan} actual={t.actual} max={Math.max(t.plan, t.actual, 1)} label={`${t.currency}: ${t.actual} / ${t.plan}`} />
-                </div>
-              ))}
-              <p className="text-[12px] text-muted-foreground">{B.summaryProjects(budgets.projects.filter((p) => p.plan > 0).length)}</p>
-            </div>
-            <div className="flex flex-col gap-1 text-[13px]">
-              {rank.map((r) => (
-                <p key={r.plan.provider} className={r.limit.over ? "text-danger" : "text-muted-foreground"}>
-                  {M.rank.providerLine(r.plan.name, r.planned, r.used, r.plan.monthlyLimit)}
-                </p>
-              ))}
-            </div>
-          </div>
-        </section>
+      <PageHeader title={T.title} meta={T.meta(home.count)} actions={actions} />
+      {summary.length > 0 && (
+        <p className="mb-5 text-[13px] text-muted-foreground">
+          <span className="font-data">{s.month}</span>: {summary.join(" · ")}
+        </p>
       )}
-      {groups.map((g) => (
-      <section key={g.name ?? ""} aria-label={g.name ?? T.ungrouped} className="mb-8">
-      {(groups.length > 1 || g.name) && <h2 className="mb-3 text-[15px] font-medium text-text-strong">{g.name ?? T.ungrouped}</h2>}
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {g.projects.map((p) => (
-          <Link key={p.id} href={`/projects/${p.slug}`} className="panel group flex h-full flex-col gap-3 p-5">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h3 className="truncate text-[17px] leading-6 font-medium text-text-strong decoration-brand-500 underline-offset-4 group-hover:underline">
-                  {p.name}
-                </h3>
-                <p className="mt-0.5 truncate font-data text-[12px] text-muted-foreground">
-                  {p.sites.length ? p.sites.map((s) => s.domain).join(", ") : T.noSites}
-                </p>
-              </div>
-              <ArrowRight aria-hidden className="mt-1 size-4 shrink-0 text-muted-foreground transition-colors group-hover:text-text-strong" />
-            </div>
-            {budgetOf.get(p.slug) && (
-              <p className="font-data text-[12px] text-muted-foreground">
-                {B.summaryLine(formatMoney(budgetOf.get(p.slug)!.plan), formatMoney(budgetOf.get(p.slug)!.actual), budgetOf.get(p.slug)!.currency, budgetOf.get(p.slug)!.percent)}
-              </p>
+      {home.groups.map((g) => {
+        const title = g.kind === "attention" ? H.attention : g.kind === "prospects" ? H.prospects : g.kind === "stopped" ? H.stopped : (g.name ?? T.ungrouped);
+        const showTitle = g.kind !== "group" || home.groups.length > 1 || g.name !== null;
+        const table = <HomeTable rows={g.rows} attention={g.kind === "attention"} />;
+        if (g.kind === "stopped") {
+          return (
+            <details key={g.key} className="mb-6">
+              <summary className="mb-3 cursor-pointer text-[15px] font-medium text-text-strong">
+                {title} <span className="font-data text-[12px] text-muted-foreground">{g.rows.length}</span>
+              </summary>
+              {table}
+            </details>
+          );
+        }
+        return (
+          <section key={g.key} aria-label={title} className="mb-6">
+            {showTitle && (
+              <h2 className={cn("mb-3 flex items-center gap-2 text-[15px] font-medium", g.kind === "attention" ? "text-warning" : "text-text-strong")}>
+                {g.kind === "attention" && <AlertTriangle aria-hidden className="size-4" />}
+                {title} <span className="font-data text-[12px] text-muted-foreground">{g.rows.length}</span>
+              </h2>
             )}
-            <div className="flex flex-wrap items-center gap-2">
-              <StatusBadge status={p.status} />
-              <span className="mono-label text-[11px] text-muted-foreground">{T.role((M.labels.role as Record<string, string>)[p.role] ?? p.role)}</span>
-              <span className={cn("mono-label text-[11px]", p.openTasks ? "text-text-strong" : "text-muted-foreground")}>{T.openTasks(p.openTasks)}</span>
-            </div>
-            <p className="mt-auto line-clamp-2 border-t border-border pt-3 text-[13px] leading-5 text-muted-foreground">
-              {p.lastJournal ? `${formatDay(p.lastJournal.date, { year: true })}: ${p.lastJournal.text}` : T.noJournal}
-            </p>
-          </Link>
-        ))}
-      </div>
-      </section>
-      ))}
+            {table}
+          </section>
+        );
+      })}
       <UnassignedSites sites={unassigned} />
     </div>
+  );
+}
+
+const ROW_GRID = "md:grid md:grid-cols-[minmax(0,2.2fr)_96px_170px_120px_110px_minmax(0,2fr)] md:items-start md:gap-4";
+
+function reasonText(r: HomeReason): string {
+  if (r.kind === "error") return H.reasons.error(r.count);
+  if (r.kind === "stale") return H.reasons.stale(r.count);
+  if (r.kind === "alert") return H.reasons.alert(r.count);
+  if (r.kind === "overdue") return H.reasons.overdue(r.days);
+  if (r.kind === "contract-ended") return H.reasons.contractEnded;
+  return H.reasons.paused;
+}
+
+/** One group as a table on wide screens; on a phone each row is a card with only what is not in order. */
+function HomeTable({ rows, attention }: { rows: HomeRow[]; attention: boolean }) {
+  return (
+    <div className="panel divide-y divide-border">
+      <div aria-hidden className={cn("mono-label hidden px-4 py-2 text-[11px] text-muted-foreground", ROW_GRID)}>
+        <span>{H.project}</span>
+        <span>{H.status}</span>
+        <span>{H.data}</span>
+        <span>{H.paidUntil}</span>
+        <span>{H.tasks}</span>
+        <span>{H.lastEntry}</span>
+      </div>
+      <ul className="divide-y divide-border">
+        {rows.map((r) => (
+          <HomeRowView key={r.project.id} row={r} attention={attention} />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function HomeRowView({ row, attention }: { row: HomeRow; attention: boolean }) {
+  const p = row.project;
+  const b = row.sources.billing;
+  const late = b.level === "overdue" || b.level === "paused";
+  return (
+    <li className={cn("flex flex-col gap-2 px-4 py-3 text-[13px]", ROW_GRID)}>
+      <div className="min-w-0">
+        <Link href={`/projects/${p.slug}`} className="text-[15px] leading-6 font-medium text-text-strong decoration-brand-500 underline-offset-4 hover:underline">
+          {p.name}
+        </Link>
+        <p className="truncate font-data text-[12px] text-muted-foreground">{p.sites.length ? p.sites.map((x) => x.domain).join(", ") : T.noSites}</p>
+        {attention && row.reasons.length > 0 && <p className="mt-0.5 text-[12px] text-warning">{row.reasons.map(reasonText).join(" · ")}</p>}
+      </div>
+      <div>
+        <StatusBadge status={p.status} />
+      </div>
+      <div className={cn(!attention && "hidden md:block")}>
+        <SourceDots row={row.sources} />
+      </div>
+      <div className={cn("font-data text-[12px]", late ? "text-warning" : "text-muted-foreground", !b.tracked && "hidden md:block")}>
+        <span className="md:hidden">{H.paidUntil}: </span>
+        {b.paidUntil ? formatDay(b.paidUntil, { year: true }) : H.noPaid}
+        {b.overdueDays > 0 && <span className="block">{H.reasons.overdue(b.overdueDays)}</span>}
+      </div>
+      <div className={cn("text-[12px]", p.openTasks ? "text-text-strong" : "hidden text-muted-foreground md:block")}>
+        <span className="md:hidden">{H.tasks}: </span>
+        {H.openTasks(p.openTasks, row.review)}
+      </div>
+      <p className="line-clamp-2 hidden text-[12px] leading-5 text-muted-foreground md:block">
+        {row.lastEntry ? `${formatDay(row.lastEntry.date, { year: true })}: ${row.lastEntry.text}` : T.noJournal}
+      </p>
+    </li>
   );
 }
 

@@ -26,6 +26,7 @@ export const PROJECT_MESSAGES = {
     ungrouped: "Other projects",
     newProject: "New project",
     backToProject: (name: string) => `Back to ${name}`,
+    sources: "Data sources",
     project: "Project",
   },
 
@@ -81,7 +82,111 @@ export const PROJECT_MESSAGES = {
     readOnly: "You can view this project. Ask an owner for the editor role to change it.",
   },
 
-  tabs: { overview: "Overview", passport: "Passport", brief: "Brief and materials", sites: "Sites", tasks: "Tasks", journal: "Journal", rank: "Rank tracking", budget: "Budget" },
+  // Agency fork UX step 2: the Budget tab is "Money" (client payment + spending); its key stays "budget" so links keep working.
+  tabs: { overview: "Overview", passport: "Passport", brief: "Brief and materials", sites: "Sites", tasks: "Tasks", journal: "Journal", rank: "Rank tracking", budget: "Money" },
+
+  home: {
+    attention: "Needs attention",
+    prospects: "Prospects",
+    stopped: "Paused and archived",
+    project: "Project",
+    status: "Status",
+    data: "Data",
+    paidUntil: "Paid until",
+    tasks: "Tasks",
+    lastEntry: "Last entry",
+    dataSummary: (ok: number, total: number) => `${ok} of ${total} ok`,
+    noData: "no sources",
+    noPaid: "not tracked",
+    openTasks: (n: number, review: number) => (n === 0 ? "none" : `${n} open${review ? `, ${review} to review` : ""}`),
+    reasons: {
+      error: (n: number) => `${n} source${n === 1 ? "" : "s"} failing`,
+      stale: (n: number) => `${n} source${n === 1 ? "" : "s"} stale`,
+      alert: (n: number) => `${n} alert${n === 1 ? "" : "s"} in 7 days`,
+      overdue: (days: number) => `payment ${days} day${days === 1 ? "" : "s"} overdue`,
+      contractEnded: "contract ended",
+      paused: "paid collection paused: not paid",
+    },
+    summary: {
+      spent: (actual: string, plan: string, currency: string) => `Spending this month: ${actual} of ${plan} ${currency}`,
+      checks: (name: string, used: number, limit: number) => `${name} checks: ${used}${limit > 0 ? ` of ${limit}` : ""} this month`,
+      overdue: (n: number) => `payments: ${n} overdue`,
+    },
+    sourcesLink: "Data sources",
+    dotsLabel: (summary: string) => `Data sources: ${summary}`,
+  },
+
+  sources: {
+    title: "Data sources",
+    description:
+      "Every project against every data source: whether data comes in, when it last synced and what failed. Set sources up where the links lead; only paid rank checks are turned on and off here.",
+    project: "Project / site",
+    names: { positions: "Positions", gsc: "Search Console", webmaster: "Yandex Webmaster", metrika: "Yandex Metrika", crawl: "Crawl", vitals: "Speed (CWV)" } as Record<string, string>,
+    short: { positions: "Pos", gsc: "GSC", webmaster: "YWM", metrika: "YM", crawl: "Crawl", vitals: "CWV" } as Record<string, string>,
+    paidMark: "paid",
+    states: {
+      ok: "OK",
+      waiting: "Waiting for the first sync",
+      stale: "Stale",
+      error: "Error",
+      off: "Off",
+      "not-connected": "Not connected",
+      "paused-billing": "Paused: not paid",
+      "paused-status": "Paused: project paused",
+      "no-site": "No site",
+    } as Record<string, string>,
+    never: "never",
+    synced: (when: string) => `last ${when}`,
+    totals: "Total",
+    totalsLine: (ok: number, stale: number, errors: number, paid: number) =>
+      `${ok} ok · ${stale} stale · ${errors} with errors · ${paid} paid source${paid === 1 ? "" : "s"} active`,
+    columnTotal: (ok: number, total: number) => `${ok} of ${total} ok`,
+    columnErrors: (n: number) => `${n} error${n === 1 ? "" : "s"}`,
+    noSite: "No site yet",
+    addDomain: "Add a domain",
+    sitesCount: (n: number) => `${n} sites`,
+    toggleOn: "Turn paid rank checks on",
+    toggleOff: "Turn paid rank checks off",
+    thresholds: (gsc: number, yandex: number, grace: number) =>
+      `Stale: Search Console after ${gsc} days, Yandex after ${yandex} days, crawls, speed checks and rank checks after their interval plus ${grace} days.`,
+    empty: "No projects yet.",
+    yandexNotConnected: "The site owner's Yandex account is not connected (Settings > Connections).",
+    failed: "The last attempt failed",
+    dataTitle: "Data",
+    allSources: "All data sources",
+  },
+
+  billing: {
+    title: "Client payment",
+    description:
+      "What the client paid for and until when. 1 to 14 days overdue: a warning. Later, or after the contract ends: paid collection (rank checks that cost money) pauses by itself; free sources keep running. Moving the dates forward resumes it.",
+    paidUntil: "Paid until",
+    paidUntilHint: "The last paid day. Empty: payments are not tracked (no warnings, no pause).",
+    contractEnd: "Contract until",
+    contractEndHint: "The last day of the contract. Optional.",
+    neverPause: "Never pause paid collection",
+    neverPauseHint: "Warnings only, for a client you trust to pay late.",
+    save: "Save",
+    saving: "Saving...",
+    saved: "Saved",
+    readOnly: "Editors and owners change the payment dates.",
+    state: {
+      none: "Payments are not tracked for this project.",
+      ok: (until: string, days: number) => `Paid until ${until}, ${days} day${days === 1 ? "" : "s"} left.`,
+      soon: (until: string, days: number) => (days === 0 ? `Paid until today (${until}).` : `Paid until ${until}: ${days} day${days === 1 ? "" : "s"} left.`),
+      overdue: (days: number, from: string | null) =>
+        `Payment ${days} day${days === 1 ? "" : "s"} overdue: a warning.${from ? ` Paid collection pauses from ${from}.` : " Paid collection is never paused."}`,
+      contractEnded: (end: string) => `The contract ended on ${end}.`,
+      paused: (reason: string, since: string | null) => `Paid collection is paused: ${reason}${since ? ` (since ${since})` : ""}. Free sources keep running.`,
+      reasons: { overdue: "the payment is more than 14 days overdue", "contract-ended": "the contract ended" } as Record<string, string>,
+    },
+    banner: {
+      overdue: (days: number, from: string | null) => `Payment ${days} day${days === 1 ? "" : "s"} overdue.${from ? ` Paid collection pauses from ${from}.` : ""}`,
+      contractEnded: (end: string) => `The contract ended on ${end}.`,
+      paused: "Paid collection is paused: the client has not paid.",
+    },
+    spendingTitle: "Spending",
+  },
 
   detail: {
     back: "All projects",
@@ -300,6 +405,8 @@ export const PROJECT_MESSAGES = {
       overLimit: (total: number, limit: number, name: string) =>
         `With these settings ${total} checks a month are planned across projects, over the ${name} limit of ${limit}. Send "override": true to save anyway.`,
       disabled: "Rank checks are off for this project. Turn them on first.",
+      pausedByStatus: "The project is paused or archived: no collection is started for it. Change its status first.",
+      pausedByBilling: "Paid collection of this project is paused: the client's payment is overdue or the contract ended. Move \"paid until\" or \"contract until\" forward in the Money tab, or turn on \"never pause\".",
       notSupported: (name: string) => `${name} cannot start a check from crawlseo.`,
       planForbidden: "Only instance admins change the provider limits and prices.",
       unknownProvider: "Unknown rank provider",
@@ -307,7 +414,8 @@ export const PROJECT_MESSAGES = {
   },
 
   budget: {
-    title: "Budget",
+    // Agency fork UX step 2: shown under Client payment in the Money tab, so it is named "Spending".
+    title: "Spending",
     description: "The monthly plan of this client by category, and what was actually spent: entries added here or by the agent, and the rank checks this project used.",
     month: "Month",
     show: "Show",

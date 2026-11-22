@@ -7,6 +7,20 @@ import { getRankProvider } from "@/lib/rank-providers/registry";
 import { cn } from "@/lib/utils";
 import { YandexStatCard } from "@/components/yandex/stat-card";
 import { YANDEX_UI } from "@/lib/yandex/messages";
+import { SourcesStrip } from "@/components/projects/source-cells";
+
+/** The billing lines of the Overview's "Needs attention". */
+function billingAttention(data: ProjectOverview): string[] {
+  const b = data.sources?.billing;
+  if (!b) return [];
+  const B = M.billing.banner;
+  if (b.level === "paused") return [B.paused];
+  if (b.level !== "overdue") return [];
+  return [
+    ...(b.overdueDays > 0 ? [B.overdue(b.overdueDays, b.pauseFrom ? formatDay(b.pauseFrom, { year: true }) : null)] : []),
+    ...(b.contractEnded && b.contractEnd ? [B.contractEnded(formatDay(b.contractEnd, { year: true }))] : []),
+  ];
+}
 
 const T = M.overview;
 
@@ -28,6 +42,8 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
     })),
     ...(data.tasks.overdue ? [{ key: "overdue", text: T.overdue(data.tasks.overdue), href: tabHref(slug, "tasks"), action: M.tabs.tasks }] : []),
     ...(reviewing ? [{ key: "review", text: T.review(reviewing), href: tabHref(slug, "tasks"), action: M.tabs.tasks }] : []),
+    // Agency fork UX step 2: an overdue payment or paid collection paused by the billing rule.
+    ...billingAttention(data).map((text, i) => ({ key: `billing-${i}`, text, href: tabHref(slug, "budget"), action: M.tabs.budget })),
   ];
   const rankSource = data.rank.source === "none" ? null : (getRankProvider(data.rank.source)?.name ?? data.rank.source);
   const frequency = (M.rank.frequencies as Record<string, string>)[data.rank.frequency] ?? data.rank.frequency;
@@ -75,6 +91,20 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
           </>
         )}
       </section>
+
+      {data.sources && (
+        <section aria-labelledby="overview-sources" className="panel p-5">
+          <div className="mb-3 flex items-baseline justify-between gap-2">
+            <h2 id="overview-sources" className="text-[15px] font-medium text-text-strong">
+              {M.sources.dataTitle}
+            </h2>
+            <Link href={`/projects/sources#p-${slug}`} className="text-link text-[13px] font-medium">
+              {M.sources.allSources}
+            </Link>
+          </div>
+          <SourcesStrip row={data.sources} />
+        </section>
+      )}
 
       <section aria-labelledby="overview-rank" className="panel flex flex-wrap items-baseline justify-between gap-2 p-5">
         <h2 id="overview-rank" className="text-[15px] font-medium text-text-strong">

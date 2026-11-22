@@ -21,7 +21,8 @@ every string in `lib/projects/messages.ts`.
 - Under the switcher, inside a project: its sites (only the user's own, the
   only ones they can open). One site is a plain link, several are a menu that
   keeps the open site sub-page, no site shows nothing.
-- Items: Projects on every page. On a site: "Back to {project}" first, the site
+- Items: Projects and Data sources (`/projects/sources`, see
+  [sources-and-billing.md](sources-and-billing.md)) on every page. On a site: "Back to {project}" first, the site
   group named after the domain, Research only when DataForSEO is connected
   (the pages still open by link), Site settings. AI & MCP is left out of the
   menu; `/sites/{id}/mcp` still opens and Settings > MCP has the same.
@@ -35,7 +36,10 @@ projects says "Sites without a project" and links to that block of
 
 ## Projects page
 
-No All sites button. Cards are grouped by `group`. Below them, while there are
+No All sites button. Since UX step 2 a table, not cards: Needs attention, then
+the projects by `group`, prospects, paused and archived (folded), with a data
+column from the sources matrix and a paid until column (see
+[sources-and-billing.md](sources-and-billing.md)). Below them, while there are
 any, **Sites without a project** lists the user's sites outside every project,
 with the one remaining link to `/sites`.
 
@@ -52,8 +56,8 @@ the MCP tools `create_project` and `update_project`. `GET /projects` and
 ## Project page
 
 Tabs: **Overview** (the default, `/projects/{slug}`), Tasks, Journal, Sites,
-Rank tracking, Budget, Passport (`?tab=passport`, formerly the default),
-Brief and materials.
+Rank tracking, Money (`?tab=budget`: client payment and spending, formerly
+Budget), Passport (`?tab=passport`, formerly the default), Brief and materials.
 
 The Overview only shows and links on, from data that is already there:
 
@@ -65,6 +69,8 @@ The Overview only shows and links on, from data that is already there:
   (`lib/yandex/report.ts`, only with a Yandex link), and links to the site's
   pages. Numbers are not added up across sites. A site's numbers and alerts
   are shown only to its owner; other members see the domain.
+- Data: the project's line of the data sources panel; a payment overdue or
+  paid collection paused by the billing rule is listed under Needs attention.
 - Rank tracking on or off, source, frequency, the last started check.
 - Open tasks: review first, then in progress, then to do; high priority and
   the earliest due first.

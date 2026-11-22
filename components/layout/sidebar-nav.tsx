@@ -20,6 +20,7 @@ import {
   FolderKanban,
   BarChart3,
   ChevronLeft,
+  Activity,
   type LucideIcon,
 } from "lucide-react";
 import { PROJECT_MESSAGES } from "@/lib/projects/messages";
@@ -107,7 +108,9 @@ export function SidebarNav({
       ...(project
         ? [{ href: `/projects/${project.slug}`, label: PROJECT_MESSAGES.nav.backToProject(project.name), icon: ChevronLeft, exact: true }]
         : []),
-      { href: "/projects", label: PROJECT_MESSAGES.nav.projects, icon: FolderKanban, exact: !!project },
+      { href: "/projects", label: PROJECT_MESSAGES.nav.projects, icon: FolderKanban, exact: !!project || pathname === "/projects/sources" },
+      // Agency fork UX step 2: the data sources panel, under Projects.
+      { href: "/projects/sources", label: PROJECT_MESSAGES.nav.sources, icon: Activity, exact: true },
     ],
   };
 
