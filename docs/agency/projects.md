@@ -203,8 +203,9 @@ billing rule: see [sources-and-billing.md](sources-and-billing.md).
 
 ## Rank tracking and budget
 
-Two more tabs, Rank tracking (whether and how often position checks are
-started, with usage against the provider's monthly limit) and Budget (the
-monthly plan and actual spending), with their API routes and MCP tools: see
+Two more parts of the project page: Rank tracking in the Data tab (whether
+and how often position checks are started, with usage against the provider's
+monthly limit) and Spending in the Money tab (the monthly plan and actual
+spending, formerly Budget), with their API routes and MCP tools: see
 [rank-settings-and-budget.md](rank-settings-and-budget.md).
 

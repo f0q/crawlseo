@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AlertTriangle, ArrowRight } from "lucide-react";
 import { formatDay } from "@/lib/format";
+import { projectTabHref } from "@/lib/projects/tabs";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import type { ProjectOverview } from "@/lib/projects/overview";
 import { getRankProvider } from "@/lib/rank-providers/registry";
@@ -24,7 +25,6 @@ function billingAttention(data: ProjectOverview): string[] {
 
 const T = M.overview;
 
-const tabHref = (slug: string, tab: string) => `/projects/${slug}?tab=${tab}`;
 
 /**
  * Agency fork: the default tab of a project. It only shows and leads on:
@@ -40,10 +40,10 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
       href: `/sites/${a.siteId}/alerts`,
       action: T.openAlerts,
     })),
-    ...(data.tasks.overdue ? [{ key: "overdue", text: T.overdue(data.tasks.overdue), href: tabHref(slug, "tasks"), action: M.tabs.tasks }] : []),
-    ...(reviewing ? [{ key: "review", text: T.review(reviewing), href: tabHref(slug, "tasks"), action: M.tabs.tasks }] : []),
+    ...(data.tasks.overdue ? [{ key: "overdue", text: T.overdue(data.tasks.overdue), href: projectTabHref(slug, "tasks"), action: M.tabs.tasks }] : []),
+    ...(reviewing ? [{ key: "review", text: T.review(reviewing), href: projectTabHref(slug, "tasks"), action: M.tabs.tasks }] : []),
     // Agency fork UX step 2: an overdue payment or paid collection paused by the billing rule.
-    ...billingAttention(data).map((text, i) => ({ key: `billing-${i}`, text, href: tabHref(slug, "budget"), action: M.tabs.budget })),
+    ...billingAttention(data).map((text, i) => ({ key: `billing-${i}`, text, href: projectTabHref(slug, "money"), action: M.tabs.money })),
   ];
   const rankSource = data.rank.source === "none" ? null : (getRankProvider(data.rank.source)?.name ?? data.rank.source);
   const frequency = (M.rank.frequencies as Record<string, string>)[data.rank.frequency] ?? data.rank.frequency;
@@ -76,7 +76,7 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
         {data.sites.length === 0 ? (
           <div className="mt-2 flex flex-col items-start gap-2">
             <p className="text-[13px] text-muted-foreground">{T.noSites}</p>
-            <Link href={tabHref(slug, "sites")} className="text-link text-[13px] font-medium">
+            <Link href={projectTabHref(slug, "data", { section: "sites" })} className="text-link text-[13px] font-medium">
               {T.addDomain}
             </Link>
           </div>
@@ -119,7 +119,7 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
             </span>
           )}
         </p>
-        <Link href={tabHref(slug, "rank")} className="text-link text-[13px] font-medium">
+        <Link href={projectTabHref(slug, "data", { section: "rank" })} className="text-link text-[13px] font-medium">
           {T.rankSettings}
         </Link>
       </section>
@@ -130,7 +130,7 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
             <h2 id="overview-tasks" className="text-[15px] font-medium text-text-strong">
               {T.tasksTitle(data.tasks.open)}
             </h2>
-            <Link href={tabHref(slug, "tasks")} className="text-link text-[13px] font-medium">
+            <Link href={projectTabHref(slug, "tasks")} className="text-link text-[13px] font-medium">
               {T.allTasks}
             </Link>
           </div>
@@ -157,7 +157,7 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
             <h2 id="overview-journal" className="text-[15px] font-medium text-text-strong">
               {T.journalTitle}
             </h2>
-            <Link href={tabHref(slug, "journal")} className="text-link text-[13px] font-medium">
+            <Link href={projectTabHref(slug, "journal")} className="text-link text-[13px] font-medium">
               {T.allJournal}
             </Link>
           </div>

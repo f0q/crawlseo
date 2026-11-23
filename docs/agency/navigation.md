@@ -55,9 +55,21 @@ the MCP tools `create_project` and `update_project`. `GET /projects` and
 
 ## Project page
 
-Tabs: **Overview** (the default, `/projects/{slug}`), Tasks, Journal, Sites,
-Rank tracking, Money (`?tab=budget`: client payment and spending, formerly
-Budget), Passport (`?tab=passport`, formerly the default), Brief and materials.
+Six tabs since UX step 3 (`lib/projects/tabs.ts`):
+
+| Tab | `?tab=` | What it holds |
+| --- | --- | --- |
+| **Overview** | none (the default) | see below |
+| Tasks | `tasks` | |
+| Journal | `journal` | |
+| Data | `data` | the project's line of the data sources panel (`#sources`), its sites and Yandex cards (`#sites`), rank tracking settings (`#rank`) |
+| Money | `money` | client payment and spending (`&month=YYYY-MM` for the spending) |
+| About | `about` | passport (`#passport`), brief and materials (`#brief`), members and deleting the project (`#members`) |
+
+The former keys still work: the page redirects `?tab=sites` to
+`?tab=data#sites`, `rank` to `?tab=data#rank`, `budget` to `?tab=money`
+(keeping `month`), `passport` to `?tab=about#passport` and `brief` to
+`?tab=about#brief`. Any other value opens the Overview.
 
 The Overview only shows and links on, from data that is already there:
 

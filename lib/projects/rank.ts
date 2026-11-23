@@ -273,7 +273,7 @@ async function ownersWithoutCabinet(db: Db, provider: RankProvider, owners: { us
   return [...new Set(missing.map((o) => o.email ?? o.userId))];
 }
 
-/** Everything the Rank tracking tab and GET .../rank-settings show. */
+/** Everything the rank tracking section (Data tab) and GET .../rank-settings show. */
 export async function getRankSettings(actor: Actor, slug: string, now = new Date()) {
   const ref = await projectFor(actor, slug);
   const db = appDb;

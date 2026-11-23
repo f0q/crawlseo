@@ -81,14 +81,28 @@ describe("projects pages", () => {
   it("renders every tab of a project, the Overview by default", async () => {
     expect(await page()).toMatch(/aria-current="page"[^>]*>Overview<[\s\S]*Last 28 days[\s\S]*quilltab\.app[\s\S]*Clicks[\s\S]*Visits from Yandex search[\s\S]*Rank tracking[\s\S]*Off[\s\S]*Tasks \(1 open\)[\s\S]*Fix titles[\s\S]*Audited the titles/);
     expect(await page("overview")).toContain("Last 28 days");
-    expect(await page("passport")).toMatch(/Passport[\s\S]*QUILLTAB_PANEL_PASS[\s\S]*Members[\s\S]*Delete project/);
-    expect(await page("brief")).toMatch(/Grow organic sign-ups[\s\S]*Files/);
-    expect(await page("sites")).toMatch(/quilltab\.app[\s\S]*Remove from project[\s\S]*Visits from Yandex search[\s\S]*SQI/);
+    // Agency fork UX step 3: six tabs; About = passport + brief + members, Data = sources + sites + rank tracking.
+    expect(await page()).toMatch(/>Overview<[\s\S]*>Tasks<[\s\S]*>Journal<[\s\S]*>Data<[\s\S]*>Money<[\s\S]*>About</);
+    expect(await page("about")).toMatch(/id="passport"[\s\S]*Passport[\s\S]*QUILLTAB_PANEL_PASS[\s\S]*id="brief"[\s\S]*Grow organic sign-ups[\s\S]*Files[\s\S]*id="members"[\s\S]*Members[\s\S]*Delete project/);
+    expect(await page("data")).toMatch(/id="sources"[\s\S]*Search Console[\s\S]*id="sites"[\s\S]*quilltab\.app[\s\S]*Remove from project[\s\S]*Visits from Yandex search[\s\S]*SQI[\s\S]*id="rank"[\s\S]*Start checks for this project[\s\S]*None \(Search Console or other data only\)[\s\S]*0 checks per month[\s\S]*All projects this month[\s\S]*No run yet/);
     expect(await page("tasks")).toContain("Fix titles");
     expect(await page("journal")).toContain("Audited the titles");
-    expect(await page("rank")).toMatch(/Start checks for this project[\s\S]*None \(Search Console or other data only\)[\s\S]*0 checks per month[\s\S]*All projects this month[\s\S]*No run yet/);
-    expect(await page("budget")).toMatch(/Money[\s\S]*Client payment[\s\S]*Payments are not tracked[\s\S]*Spending[\s\S]*0 of 0 RUB[\s\S]*work[\s\S]*No spending this month[\s\S]*Last 6 months/);
+    expect(await page("money")).toMatch(/Money[\s\S]*Client payment[\s\S]*Payments are not tracked[\s\S]*Spending[\s\S]*0 of 0 RUB[\s\S]*work[\s\S]*No spending this month[\s\S]*Last 6 months/);
+    expect(await page("money")).toContain('name="tab" value="money"');
     expect(await page()).toMatch(/Data<\/h2>[\s\S]*Search Console/);
+  });
+
+  it("redirects the former tab keys to their new tab and section", async () => {
+    holder.user = { id: "user-a", email: "a@quilltab.app" };
+    await expect(page("sites")).rejects.toThrow("redirect /projects/quilltab?tab=data#sites");
+    await expect(page("rank")).rejects.toThrow("redirect /projects/quilltab?tab=data#rank");
+    await expect(page("budget")).rejects.toThrow("redirect /projects/quilltab?tab=money");
+    await expect(page("passport")).rejects.toThrow("redirect /projects/quilltab?tab=about#passport");
+    await expect(page("brief")).rejects.toThrow("redirect /projects/quilltab?tab=about#brief");
+    const budget = ProjectPage({ params: Promise.resolve({ slug: "quilltab" }), searchParams: Promise.resolve({ tab: "budget", month: "2026-10" }) });
+    await expect(budget).rejects.toThrow("redirect /projects/quilltab?tab=money&month=2026-10");
+    // An unknown tab opens the Overview.
+    expect(await page("nope")).toContain("Last 28 days");
   });
 
   it("the data sources panel lists every project against every source, with totals", async () => {
@@ -103,15 +117,15 @@ describe("projects pages", () => {
   it("is read-only for a viewer, and another user's project is not found", async () => {
     holder.user = { id: "user-v", email: "v@quilltab.app" };
     expect(await page()).toContain("Only the owner of this site sees its numbers.");
-    const html = await page("passport");
+    const html = await page("about");
     expect(html).toContain("You can view this project");
     expect(html).not.toContain("Delete project");
     expect(await page("tasks")).not.toContain("Add task");
     // A viewer sees the domain of a site, not its Yandex data.
-    expect(await page("sites")).toContain("None of your sites in this project has Yandex linked yet.");
-    expect(await page("rank")).toContain("You can view these settings");
-    expect(await page("budget")).not.toContain("Save plan");
-    expect(await page("budget")).toContain("Editors and owners change the payment dates.");
+    expect(await page("data")).toContain("None of your sites in this project has Yandex linked yet.");
+    expect(await page("data")).toContain("You can view these settings");
+    expect(await page("money")).not.toContain("Save plan");
+    expect(await page("money")).toContain("Editors and owners change the payment dates.");
     await expect(page(undefined, "secret-b")).rejects.toThrow("not found");
   });
 });

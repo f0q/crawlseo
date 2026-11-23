@@ -41,7 +41,7 @@ export function BudgetSection({ slug, data, canEdit }: { slug: string; data: Bud
         description={T.description}
         actions={
           <form method="get" className="flex items-end gap-2">
-            <input type="hidden" name="tab" value="budget" />
+            <input type="hidden" name="tab" value="money" />
             <Field label={T.month}>
               <input className={cn(inputClass, "w-40")} type="month" name="month" defaultValue={data.month} />
             </Field>

@@ -10,7 +10,7 @@ import type { TaskStatus } from "./schema";
  * The Overview tab of a project (agency fork): what is going on, read from
  * data that is already there. Nothing new is collected and nothing is
  * changed. A site's numbers and alerts are shown only to its owner, like the
- * Yandex cards of the Sites tab (other members see the domain).
+ * Yandex cards of the Data tab (other members see the domain).
  */
 
 /** Alerts that fired within this many days count as active. */

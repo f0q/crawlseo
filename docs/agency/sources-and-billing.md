@@ -67,7 +67,7 @@ matrix as JSON, `?slug=` for one project. Read only.
 group; a project with several sites gets a sub-row per site. Cells show the
 state, the last sync and the error (on hover, and as text). The Positions
 cell has the on/off switch of paid rank checks for editors and owners, the
-same `PATCH .../rank-settings` as the Rank tracking tab (over the provider's
+same `PATCH .../rank-settings` as the rank tracking section of the Data tab (over the provider's
 limit it asks, then sends `override`). Other sources are set up where their
 cell links to: turning Search Console or Yandex off means unlinking, which
 stays in Site settings. The footer counts ok sources per column, and the
@@ -111,8 +111,8 @@ Migration `20261126000000_agency_billing`, on `Project`, all additive:
 | `billingNeverPause` | default false; true: warnings only |
 | `paidPausedAt`, `paidPauseReason` | written by the rule only: when and why (`overdue`, `contract-ended`) paid collection was auto-paused |
 
-Set in the project's **Money** tab (the former Budget tab, same `?tab=budget`
-link): Client payment on top, Spending (plan and actual, unchanged) below.
+Set in the project's **Money** tab (`?tab=money`, the former Budget tab; the
+old `?tab=budget` link redirects there): Client payment on top, Spending (plan and actual, unchanged) below.
 Also `PATCH /api/v1/projects/{slug}` with `paidUntil` and `contractEnd`
 (`YYYY-MM-DD`, `null` or `""` clears) and `billingNeverPause` (boolean), and
 the MCP tool `update_project` with the same fields. `GET /projects` and

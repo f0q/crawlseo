@@ -46,7 +46,7 @@ export const PROJECT_MESSAGES = {
     ungrouped: "Not in a group",
     groupLabel: (name: string) => name,
     unassignedTitle: "Sites without a project",
-    unassignedDescription: "Your sites that are in none of your projects. Open one, or add it to a project in the project's Sites tab.",
+    unassignedDescription: "Your sites that are in none of your projects. Open one, or add it to a project in the project's Data tab.",
     allSitesLink: "All sites",
   },
 
@@ -84,8 +84,8 @@ export const PROJECT_MESSAGES = {
     readOnly: "You can view this project. Ask an owner for the editor role to change it.",
   },
 
-  // Agency fork UX step 2: the Budget tab is "Money" (client payment + spending); its key stays "budget" so links keep working.
-  tabs: { overview: "Overview", passport: "Passport", brief: "Brief and materials", sites: "Sites", tasks: "Tasks", journal: "Journal", rank: "Rank tracking", budget: "Money" },
+  // Agency fork UX step 3: six tabs; the former keys (sites, rank, budget, passport, brief) redirect (lib/projects/tabs.ts).
+  tabs: { overview: "Overview", tasks: "Tasks", journal: "Journal", data: "Data", money: "Money", about: "About" },
 
   home: {
     attention: "Needs attention",
@@ -196,6 +196,8 @@ export const PROJECT_MESSAGES = {
     deleteProject: "Delete project",
     deleteConfirm: "Delete this project with its notes, files, tasks and journal? Its sites stay.",
     deleting: "Deleting...",
+    // Agency fork UX step 3: the About tab names its first block, formerly the Passport tab.
+    passportTitle: "Passport",
   },
 
   overview: {
@@ -214,7 +216,7 @@ export const PROJECT_MESSAGES = {
     review: (n: number) => `${n} task${n === 1 ? "" : "s"} waiting for review`,
     numbersTitle: "Last 28 days",
     numbersDescription: "Against the 28 days before. Positions and CTR are not added up across sites.",
-    noSites: "No site in this project yet. Add a domain in the Sites tab; tasks, the journal and the brief work without one.",
+    noSites: "No site in this project yet. Add a domain in the Data tab; tasks, the journal and the brief work without one.",
     addDomain: "Add a domain",
     notYours: "Only the owner of this site sees its numbers.",
     google: "Google Search Console",

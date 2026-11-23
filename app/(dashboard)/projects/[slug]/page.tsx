@@ -26,14 +26,18 @@ import { StatusBadge } from "@/components/projects/ui";
 import { YandexProjectCards, yandexProjectSites } from "@/components/yandex/project-cards";
 import { OverviewSection } from "@/components/projects/overview-section";
 import { projectOverview } from "@/lib/projects/overview";
-
-// Agency fork UX step 1: Overview first and by default, the daily tabs next, the set-and-forget ones last.
-const TABS = ["overview", "tasks", "journal", "sites", "rank", "budget", "passport", "brief"] as const;
-type Tab = (typeof TABS)[number];
+import { sourcesMatrix } from "@/lib/projects/sources";
+import { SourcesStrip } from "@/components/projects/source-cells";
+import { PROJECT_TABS, projectTabHref, resolveProjectTab } from "@/lib/projects/tabs";
 
 const iso = (d: Date) => d.toISOString();
 
-/** Agency fork: one client project, in tabs: overview (the default), tasks, journal, sites, rank tracking, money (client payment and spending), passport, brief and materials. */
+/**
+ * Agency fork: one client project, in six tabs (UX step 3): overview (the default), tasks, journal,
+ * data (sources, sites, rank tracking), money (client payment and spending), about (passport, brief
+ * and materials, members). Former tab keys (`?tab=sites`, `rank`, `budget`, `passport`, `brief`)
+ * redirect to their new tab and section (lib/projects/tabs.ts).
+ */
 export default async function ProjectPage({
   params,
   searchParams,
@@ -55,56 +59,76 @@ export default async function ProjectPage({
   }
   const { project, sites, members } = detail;
   const canEdit = atLeast(project.role, "editor");
-  const tab: Tab = (TABS as readonly string[]).includes(String(query.tab)) ? (query.tab as Tab) : "overview";
+  const resolved = resolveProjectTab(query.tab);
+  const month = MONTH_PATTERN.test(String(query.month)) ? String(query.month) : undefined;
+  if (resolved.legacy) redirect(projectTabHref(slug, resolved.tab, { section: resolved.section, query: { month } }));
+  const { tab } = resolved;
 
   let body: React.ReactNode;
   if (tab === "overview") {
     body = <OverviewSection slug={slug} data={await projectOverview(actor, slug)} />;
-  } else if (tab === "passport") {
+  } else if (tab === "about") {
+    const [{ notes }, { files }, groups] = await Promise.all([listNotes(actor, slug), listFiles(actor, slug), listGroups(actor)]);
     body = (
       <div className="flex flex-col gap-5">
-        <div className="panel p-5">
-          <ProjectForm key={iso(project.updatedAt)} project={project} canEdit={canEdit} groups={await listGroups(actor)} />
+        <div id="passport" className="panel scroll-mt-20 p-5">
+          <h2 className="mb-4 text-[17px] leading-6 font-medium text-text-strong">{M.detail.passportTitle}</h2>
+          <ProjectForm key={iso(project.updatedAt)} project={project} canEdit={canEdit} groups={groups} />
         </div>
-        <MembersSection slug={slug} members={members} me={actor.userId} isOwner={project.role === "owner"} />
-        {project.role === "owner" && <DeleteProjectButton slug={slug} />}
+        <div id="brief" className="flex scroll-mt-20 flex-col gap-5">
+          <NotesSection slug={slug} notes={notes.map((n) => ({ ...n, updatedAt: iso(n.updatedAt) }))} canEdit={canEdit} />
+          <FilesSection slug={slug} files={files.map((f) => ({ ...f, createdAt: iso(f.createdAt) }))} canEdit={canEdit} />
+        </div>
+        <div id="members" className="flex scroll-mt-20 flex-col gap-5">
+          <MembersSection slug={slug} members={members} me={actor.userId} isOwner={project.role === "owner"} />
+          {project.role === "owner" && <DeleteProjectButton slug={slug} />}
+        </div>
       </div>
     );
-  } else if (tab === "brief") {
-    const [{ notes }, { files }] = await Promise.all([listNotes(actor, slug), listFiles(actor, slug)]);
-    body = (
-      <div className="flex flex-col gap-5">
-        <NotesSection slug={slug} notes={notes.map((n) => ({ ...n, updatedAt: iso(n.updatedAt) }))} canEdit={canEdit} />
-        <FilesSection slug={slug} files={files.map((f) => ({ ...f, createdAt: iso(f.createdAt) }))} canEdit={canEdit} />
-      </div>
-    );
-  } else if (tab === "sites") {
+  } else if (tab === "data") {
     const linkable = canEdit
       ? await db.site.findMany({ where: { userId: actor.userId, projectId: null }, select: { id: true, domain: true }, orderBy: { domain: "asc" } })
       : [];
-    const yandex = await yandexProjectSites(db, sites.filter((s) => s.yours));
+    const [yandex, rank, matrix] = await Promise.all([
+      yandexProjectSites(db, sites.filter((s) => s.yours)),
+      getRankSettings(actor, slug),
+      sourcesMatrix(actor, { slug }),
+    ]);
+    const sourcesRow = matrix.projects[0] ?? null;
     body = (
       <div className="flex flex-col gap-5">
-        <SitesSection slug={slug} sites={sites} linkable={linkable} canEdit={canEdit} />
-        {/* Agency fork: Yandex cards of the viewer's own sites (lib/yandex). */}
-        <YandexProjectCards reports={yandex} />
+        {sourcesRow && (
+          <section id="sources" aria-labelledby="data-sources" className="panel scroll-mt-20 p-5">
+            <div className="mb-3 flex items-baseline justify-between gap-2">
+              <h2 id="data-sources" className="text-[15px] font-medium text-text-strong">
+                {M.sources.dataTitle}
+              </h2>
+              <Link href={`/projects/sources#p-${slug}`} className="text-link text-[13px] font-medium">
+                {M.sources.allSources}
+              </Link>
+            </div>
+            <SourcesStrip row={sourcesRow} />
+          </section>
+        )}
+        <div id="sites" className="flex scroll-mt-20 flex-col gap-5">
+          <SitesSection slug={slug} sites={sites} linkable={linkable} canEdit={canEdit} />
+          {/* Agency fork: Yandex cards of the viewer's own sites (lib/yandex). */}
+          <YandexProjectCards reports={yandex} />
+        </div>
+        <div id="rank" className="scroll-mt-20">
+          <RankSettingsSection
+            key={rank.settings.updatedAt ? iso(rank.settings.updatedAt) : "new"}
+            slug={slug}
+            data={{ ...rank, settings: { ...rank.settings, updatedAt: rank.settings.updatedAt ? iso(rank.settings.updatedAt) : null } }}
+            canEdit={canEdit}
+          />
+        </div>
       </div>
     );
   } else if (tab === "tasks") {
     const { tasks } = await listTasks(actor, slug);
     body = <TasksSection slug={slug} tasks={tasks} canEdit={canEdit} />;
-  } else if (tab === "rank") {
-    const data = await getRankSettings(actor, slug);
-    body = (
-      <RankSettingsSection
-        key={data.settings.updatedAt ? iso(data.settings.updatedAt) : "new"}
-        slug={slug}
-        data={{ ...data, settings: { ...data.settings, updatedAt: data.settings.updatedAt ? iso(data.settings.updatedAt) : null } }}
-        canEdit={canEdit}
-      />
-    );
-  } else if (tab === "budget") {
-    const month = MONTH_PATTERN.test(String(query.month)) ? String(query.month) : undefined;
+  } else if (tab === "money") {
     const data = await getBudget(actor, slug, month);
     // Agency fork UX step 2: the Money tab, the client's payment first, then the spending (the former Budget).
     body = (
@@ -141,10 +165,10 @@ export default async function ProjectPage({
         actions={<StatusBadge status={project.status} />}
       />
       <nav aria-label={project.name} className="mb-5 flex gap-1 overflow-x-auto border-b border-border">
-        {TABS.map((t) => (
+        {PROJECT_TABS.map((t) => (
           <Link
             key={t}
-            href={t === "overview" ? `/projects/${slug}` : `/projects/${slug}?tab=${t}`}
+            href={projectTabHref(slug, t)}
             aria-current={t === tab ? "page" : undefined}
             className={cn(
               "-mb-px border-b-2 px-3 py-2 text-[14px] whitespace-nowrap transition-colors",

@@ -2,7 +2,7 @@
 
 A site can be linked to one Yandex Webmaster host and one Yandex Metrika
 counter (with the goals to track). A daily job syncs both into the database;
-the site's Yandex page, the project's Sites tab, `/api/v1` and the MCP read
+the site's Yandex page, the project's Data tab, `/api/v1` and the MCP read
 from there. Everything is read only: nothing is changed in Webmaster or
 Metrika.
 

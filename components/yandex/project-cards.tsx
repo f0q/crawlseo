@@ -31,7 +31,7 @@ export async function yandexProjectSites(db: Db, sites: { id: string; domain: st
 }
 
 /**
- * Agency fork: the project's Sites tab shows Yandex cards for the sites the
+ * Agency fork: the project's Data tab shows Yandex cards for the sites the
  * viewer owns (other members see a site's domain, not its data).
  */
 export function YandexProjectCards({ reports }: { reports: YandexProjectSite[] }) {

@@ -317,6 +317,7 @@ export async function sourcesMatrix(actor: Actor, opts: { slug?: string; now?: D
     const settings = p.rankSettings ?? { enabled: false, source: "none", frequency: "manual" };
     const provider = settings.source === "none" ? undefined : getRankProvider(settings.source);
     const paid = Boolean(provider?.startCheck && provider.cabinet);
+    // Kept as is: /api/v1 returns this link; the project page redirects it to ?tab=data#rank (lib/projects/tabs.ts).
     const href = `/projects/${p.slug}?tab=rank`;
     const providerEngines = engines.filter((e) => p.sites.some((s) => s.id === e.siteId) && getRankProvider(e.source));
     const run = runBy.get(p.id);

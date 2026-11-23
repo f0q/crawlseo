@@ -6,7 +6,7 @@ import { projectUrl, send, SendError, useAction } from "./ui";
 
 /**
  * Agency fork: the on/off of paid rank checks of a project in the data
- * sources panel. The same PATCH as the Rank tracking tab; over the provider's
+ * sources panel. The same PATCH as the rank tracking section of the Data tab; over the provider's
  * limit it asks before sending "override".
  */
 export function RankToggle({ slug, enabled, name }: { slug: string; enabled: boolean; name: string }) {

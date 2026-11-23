@@ -1,8 +1,9 @@
 # Rank tracking settings and client budget (agency fork)
 
-Two tabs of a project page: **Rank tracking** decides whether crawlseo starts
-position checks for the project, and **Budget** holds the client's monthly
-plan against what was actually spent. The code is in `lib/projects/rank.ts`,
+Two parts of a project page: **Rank tracking** (a section of the Data tab,
+`?tab=data#rank`) decides whether crawlseo starts position checks for the
+project, and **Budget** (Spending in the Money tab, `?tab=money`) holds the
+client's monthly plan against what was actually spent. The code is in `lib/projects/rank.ts`,
 `lib/projects/rank-usage.ts` (the arithmetic, shared with the browser),
 `lib/projects/rank-jobs.ts` (the schedule) and `lib/projects/budget.ts`; the
 tabs in `components/projects/rank-settings-section.tsx` and
@@ -114,7 +115,8 @@ Every start, scheduled or by hand, first goes through `paidCollectionGuard`
 (`lib/projects/collection.ts`): a paused or archived project, or one whose paid
 collection the billing rule paused, starts nothing and logs nothing. See
 [sources-and-billing.md](sources-and-billing.md). The Budget tab is now the
-Money tab (same link), with the client's payment above the spending.
+Money tab (`?tab=money`; `?tab=budget` redirects there), with the client's
+payment above the spending.
 
 `SCHEDULE_RANK_CHECKS=false` turns the task off for the whole instance; the
 settings, usage and budget keep working.

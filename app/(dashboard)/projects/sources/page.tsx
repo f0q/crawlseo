@@ -5,6 +5,7 @@ import { formatDay } from "@/lib/format";
 import { sessionActor } from "@/lib/projects/dashboard";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { groupProjects } from "@/lib/projects/navigation";
+import { projectTabHref } from "@/lib/projects/tabs";
 import {
   GSC_STALE_DAYS,
   SCHEDULE_GRACE_DAYS,
@@ -123,7 +124,7 @@ function ProjectRows({ row }: { row: SourceProjectRow }) {
             </td>
             <td colSpan={SOURCE_IDS.length - 1} className="px-3 py-3 text-[13px] text-muted-foreground">
               {T.noSite} ·{" "}
-              <Link href={`/projects/${row.slug}?tab=sites`} className="text-link">
+              <Link href={projectTabHref(row.slug, "data", { section: "sites" })} className="text-link">
                 {T.addDomain}
               </Link>
             </td>
