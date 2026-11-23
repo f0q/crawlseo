@@ -209,3 +209,48 @@ describe("sidebar home and workspace switcher", () => {
     expect(routes.filter((r) => !(SITE_SUB_PAGES as readonly string[]).includes(r))).toEqual([]);
   });
 });
+
+describe("mobile header", () => {
+  const project = { slug: "one", name: "One", status: "client", group: null, canEdit: true, sites: [{ id: "site-a", domain: "Alpha.example" }] };
+  const projectNav = { groups: [{ name: null, projects: [project] }], unassigned: [] };
+  /** The sticky block above the page on a phone: the header and the strip. */
+  const mobileTop = (html: string) => html.match(/<div class="sticky top-0 z-30 md:hidden">[^]*?<\/header>(?:<div class="border-b[^]*?<\/nav>)?/)?.[0] ?? "";
+
+  it("shows the menu button and the client, its sections in a strip with the open one current", () => {
+    nav.pathname = "/projects/one";
+    nav.search = "tab=money";
+    const top = mobileTop(render({ name: "Mike", sites: SITES, projectNav }));
+    nav.search = "";
+    expect(top).toContain('aria-label="Open menu"');
+    expect(top).toContain('aria-label="Project: One"');
+    expect(top).toMatch(/<nav[^>]*aria-label="Sections of One"/);
+    expect(top).toMatch(/>Overview<[^]*>Tasks<[^]*>Journal<[^]*>Data<[^]*>Money<[^]*>About</);
+    expect(activeHrefs(top)).toEqual(["/projects/one?tab=money"]);
+    // No logo: the header names where you are.
+    expect(top).not.toContain('aria-label="crawlseo"');
+  });
+
+  it("on a site: a line back to the project overview, then the site's pages", () => {
+    nav.pathname = "/sites/site-a/positions";
+    const top = mobileTop(render({ name: "Mike", sites: SITES, projectNav }));
+    expect(top).toMatch(/<a (?=[^>]*href="\/projects\/one")(?=[^>]*title="One")[^>]*>[^]*?>Alpha\.example</);
+    expect(top).toMatch(/>Site overview<[^]*>Positions<[^]*>Site settings</);
+    expect(activeHrefs(top)).toEqual(["/sites/site-a/positions"]);
+  });
+
+  it("on a general page: its name and no strip; the logo where there is no name", () => {
+    nav.pathname = "/projects/sources";
+    const top = mobileTop(render({ name: "Mike", sites: SITES, projectNav }));
+    expect(top).toContain(">Data sources</span>");
+    expect(top).not.toContain("Sections of");
+    expect(top).not.toContain('aria-label="Project: ');
+    nav.pathname = "/projects/unknown-page/deeper";
+    expect(mobileTop(render({ name: "Mike", sites: SITES, projectNav }))).toContain('aria-label="crawlseo"');
+  });
+
+  it("the drawer has one line with the logo and the close button", () => {
+    nav.pathname = "/projects";
+    const html = render({ name: "Mike", sites: SITES, projectNav });
+    expect(html).toMatch(/aria-label="crawlseo"[^]*?aria-label="Collapse sidebar"[^]*?aria-label="Close menu"/);
+  });
+});

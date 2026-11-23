@@ -9,10 +9,11 @@ import { Logo } from "@/components/brand/logo";
 import { CloudPromo } from "@/components/layout/cloud-promo";
 import { ProjectSidebar } from "@/components/projects/project-sidebar";
 import { GlobalNav } from "@/components/projects/global-nav";
+import { MobileHeader } from "@/components/projects/mobile-header";
 import type { ProjectNav } from "@/lib/projects/navigation";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { AvailableUpdate } from "@/lib/update-check";
-import { PanelLeftClose, PanelLeftOpen, Menu, X } from "lucide-react";
+import { PanelLeftClose, PanelLeftOpen, X } from "lucide-react";
 
 export type ShellSite = { id: string; domain: string; dataThrough: string | null };
 
@@ -105,6 +106,15 @@ export function AppShell({ email, name, image, version, update, children, sites,
               <PanelLeftClose className="size-4" aria-hidden />
             )}
           </button>
+          {/* Agency fork: in the mobile drawer the logo and the close button share one line. */}
+          <button
+            type="button"
+            onClick={() => setMobileOpen(false)}
+            aria-label="Close menu"
+            className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-bg-section hover:text-text-strong md:hidden"
+          >
+            <X className="size-5" aria-hidden />
+          </button>
         </div>
       </div>
 
@@ -159,39 +169,13 @@ export function AppShell({ email, name, image, version, update, children, sites,
         )}
         inert={!mobileOpen}
       >
-        <div className="flex items-center justify-end px-3 pt-3">
-          <button
-            type="button"
-            onClick={() => setMobileOpen(false)}
-            aria-label="Close menu"
-            className="flex size-11 items-center justify-center rounded-md text-muted-foreground hover:bg-bg-section hover:text-text-strong"
-          >
-            <X className="size-5" aria-hidden />
-          </button>
-        </div>
         <div className="flex-1">{sidebarContent}</div>
       </aside>
 
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        {/* Mobile top bar */}
-        <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-border bg-bg px-3 md:hidden">
-          <Link
-            href={HOME_HREF}
-            aria-label="crawlseo"
-            className="flex h-11 items-center px-2 text-text-strong"
-          >
-            <Logo decorative className="h-[22px]" />
-          </Link>
-          <button
-            type="button"
-            onClick={() => setMobileOpen(true)}
-            aria-label="Open menu"
-            className="flex size-11 items-center justify-center rounded-md text-text-strong hover:bg-bg-section"
-          >
-            <Menu className="size-5" aria-hidden />
-          </button>
-        </header>
+        {/* Mobile top bar. Agency fork: the menu and the client, the strip of its sections under it (components/projects/mobile-header.tsx). */}
+        <MobileHeader nav={nav} research={research} onOpenMenu={() => setMobileOpen(true)} />
 
         <main className="mx-auto w-full max-w-[1600px] flex-1 px-5 py-6 md:px-10 md:py-8">{children}</main>
       </div>
