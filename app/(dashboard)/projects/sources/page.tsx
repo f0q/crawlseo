@@ -66,7 +66,7 @@ export default async function SourcesPage() {
               {(groups.length > 1 || g.name) && (
                 <tr>
                   <th colSpan={SOURCE_IDS.length + 1} scope="colgroup" className="bg-bg-section px-4 py-1.5 text-[12px] font-medium text-text-strong">
-                    {g.name ?? M.list.ungrouped}
+                    {g.name ? M.list.groupLabel(g.name) : M.list.ungrouped}
                   </th>
                 </tr>
               )}

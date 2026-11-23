@@ -75,7 +75,7 @@ export function ProjectSwitcher({ nav, collapsed = false }: { nav: ProjectNav; c
                   <Menu.Separator className="mx-1 my-1 h-px bg-border" />
                   <Menu.Group>
                   {nav.groups.length > 1 || g.name ? (
-                    <Menu.GroupLabel className={GROUP_LABEL_CLASS}>{g.name ?? T.ungrouped}</Menu.GroupLabel>
+                    <Menu.GroupLabel className={GROUP_LABEL_CLASS}>{g.name ? T.groupLabel(g.name) : T.ungrouped}</Menu.GroupLabel>
                   ) : null}
                   {g.projects.map((p) => {
                     const current = view.project?.slug === p.slug;

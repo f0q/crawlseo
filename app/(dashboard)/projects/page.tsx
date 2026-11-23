@@ -76,7 +76,7 @@ export default async function ProjectsPage() {
         </p>
       )}
       {home.groups.map((g) => {
-        const title = g.kind === "attention" ? H.attention : g.kind === "prospects" ? H.prospects : g.kind === "stopped" ? H.stopped : (g.name ?? T.ungrouped);
+        const title = g.kind === "attention" ? H.attention : g.kind === "prospects" ? H.prospects : g.kind === "stopped" ? H.stopped : (g.name ? T.groupLabel(g.name) : T.ungrouped);
         const showTitle = g.kind !== "group" || home.groups.length > 1 || g.name !== null;
         const table = <HomeTable rows={g.rows} attention={g.kind === "attention"} />;
         if (g.kind === "stopped") {
