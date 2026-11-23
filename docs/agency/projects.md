@@ -7,8 +7,8 @@ tasks and a journal of the work. It sits above sites. The code is in
 
 After sign-in, `/` and the login page lead to `/projects`, and so does the
 logo. A project is the only top-level entity of the interface: the sidebar has
-a project switcher, a project opens on its Overview, and every site page shows
-its project. `/sites` and every site route still work by link; on `/projects`
+a project switcher, a project opens on its Overview, its sections and its
+sites' pages are items of one sidebar, and every site page shows its project. `/sites` and every site route still work by link; on `/projects`
 the link to All sites stays while some of your sites are in no project. See
 [navigation.md](navigation.md).
 
@@ -144,7 +144,7 @@ the server and the picker). A group with no project does not exist.
   confirmation), New group (a name and the projects to move into it: an empty
   group cannot exist), and every project you can edit, by group, each with a
   picker that saves at once.
-- **On `/projects`**: a Groups button in the header, and a "⋯" menu next to
+- **On `/projects`**: Groups in the sidebar's General block, and a "⋯" menu next to
   each named group heading (Rename, Ungroup) for owners and editors of a
   project in it. The actions cover the whole group, also its prospects and
   paused projects listed further down.

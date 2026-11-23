@@ -63,7 +63,7 @@ matrix as JSON, `?slug=` for one project. Read only.
 
 ## The data sources panel
 
-`/projects/sources`, in the sidebar under Projects. Rows are projects by
+`/projects/sources`, in the General block at the bottom of the sidebar. Rows are projects by
 group; a project with several sites gets a sub-row per site. Cells show the
 state, the last sync and the error (on hover, and as text). The Positions
 cell has the on/off switch of paid rank checks for editors and owners, the

@@ -2,38 +2,95 @@
 
 A project is the only top-level entity of the interface. A site is part of a
 project: the sidebar, the home and the site pages lead through the project.
-Every `/sites/...` route, `/api/v1` and the MCP keep working as before; only
-the way in and out of a site changed. The code is in
-`lib/projects/navigation.ts`, `lib/projects/shell.ts`,
-`lib/projects/overview.ts` and `components/projects/`
-(`project-switcher.tsx`, `overview-section.tsx`, `site-project-crumb.tsx`);
-every string in `lib/projects/messages.ts`.
+Every URL (`/projects/{slug}?tab=...`, `/projects/sources`,
+`/projects/groups`, `/sites/...`), `/api/v1` and the MCP work as before; only
+where the links stand changed. The code: `lib/projects/nav-items.ts` (every
+item of the sidebar and of the phone strip, pure), `lib/projects/navigation.ts`
+(the switcher's data and where it leads), `lib/projects/shell.ts` (the loader),
+`components/projects/` (`project-sidebar.tsx`, `project-switcher.tsx`,
+`global-nav.tsx`, `mobile-header.tsx`, `context-strip.tsx`, `breadcrumbs.tsx`,
+`site-project-crumb.tsx`); every string in `lib/projects/messages.ts`.
+Upstream's `components/layout/sidebar-nav.tsx` and
+`components/sites/site-switcher.tsx` are unchanged and no longer used by the
+shell; `app-shell.tsx` mounts the agency sidebar, the General block and the
+phone header in their place.
 
 ## Sidebar
 
-- The logo leads to `/projects`, like the landing after sign-in.
-- The switcher at the top lists All projects, the projects by group (named
-  groups alphabetically, the ungrouped last as "Other projects"; clients,
-  prospects, paused, archived inside a group), then **Sites without a
-  project** (the user's own sites in none of the projects they see), then
-  New project. The upstream site switcher (`components/sites/site-switcher.tsx`)
-  is unchanged and no longer used by the shell.
-- Under the switcher, inside a project: its sites (only the user's own, the
-  only ones they can open). One site is a plain link, several are a menu that
-  keeps the open site sub-page, no site shows nothing.
-- Items: Projects, Data sources (`/projects/sources`, see
-  [sources-and-billing.md](sources-and-billing.md)) and Groups
-  (`/projects/groups`, see [projects.md](projects.md#groups)) on every page. On a site: "Back to {project}" first, the site
-  group named after the domain, Research only when DataForSEO is connected
-  (the pages still open by link), Site settings. AI & MCP is left out of the
-  menu; `/sites/{id}/mcp` still opens and Settings > MCP has the same.
+Three rules (navigation review of 2026-11-23): top to bottom is a path
+(Projects, the project, its sites), the bottom is about every project, and
+exactly one item is active: the open screen.
+
+- The logo leads to `/projects` and does nothing else.
+- **Projects**, active on `/projects` and `/projects/new` only.
+- **The switcher** under it changes the client. It names the open project
+  (its group, if any, in a small line above), "Sites without a project" on
+  such a site, "Go to project..." elsewhere. The menu: the projects by group
+  (the ungrouped first, then named groups alphabetically; clients, prospects,
+  paused, archived inside a group), **Sites without a project** (the user's
+  own sites in none of the projects they see), New project. Choosing a
+  project keeps the screen (`switchTarget`): from a project section the same
+  section of the other project, from a site page the same page of its first
+  site (its Overview when it has no site of the user's), from anywhere else
+  its Overview.
+- **Inside a project**, the section **Project**: Overview, Tasks, Journal,
+  Data, Money, About (the `?tab=` links; a former key counts as the tab it
+  moved to). Then a section per site of the project (only the user's own,
+  the only ones they can open), titled with the domain: Site overview,
+  Keywords, Saved keywords, Positions, Yandex, Pages, Crawl / Audit, Vitals,
+  Opportunities, Alerts, Research (Keyword research, Domain overview,
+  Backlinks; only with DataForSEO connected, the pages still open by link),
+  Site settings last. AI & MCP is left out; `/sites/{id}/mcp` still opens and
+  Settings > MCP has the same.
+- A site page shows **the same sidebar**: only the active item changes, and
+  the project's sections are one click away. There is no "Back to" line and
+  no site picker.
+- **Several sites**: each domain is a line of its own; only the open site
+  unfolds its pages, on the project's own pages all are folded. Another
+  domain from a site page opens the same page of that site.
+- **No site**: an editor or owner sees "+ Add a domain"
+  (`?tab=data#sites`), a viewer nothing.
+- **A site without a project**: no Project section; "Link to a project"
+  (`/projects#unassigned`) above the site's section.
+- **General**, fixed at the bottom with the user menu (the middle scrolls):
+  Data sources (`/projects/sources`, see
+  [sources-and-billing.md](sources-and-billing.md)), Groups
+  (`/projects/groups`, see [projects.md](projects.md#groups)), Settings. The
+  same on every screen. The GSC status ("GSC data through ...") shows only on
+  a site, it is about that site. Settings is also still in the user menu
+  (upstream file, left alone).
+- **Collapsed**: the same zones as icons with dividers: Projects, the
+  project's first letter (the switcher), the six section icons, the open
+  site's page icons (a globe per folded site), the three General icons.
+
+`lib/projects/nav-items.test.ts` fails when upstream adds a site page to
+`SITE_SUB_PAGES` that is neither in the menu (`SITE_PAGES`,
+`SITE_RESEARCH_PAGES`, `SITE_SETTINGS_PAGE`) nor hidden on purpose
+(`SITE_HIDDEN_PAGES`, `mcp`).
+
+## Phone
+
+Below `md` the client's navigation is a strip under the header, never the
+sidebar and the strip at once. The header (fixed with the strip): the menu
+button and the client's name, a tap on which opens the switcher; on a
+general page its name ("Projects", "Data sources", ...), the logo elsewhere.
+The strip: the project's six sections, or on a site a line back to the
+project's Overview (the domain) and the site's pages; it scrolls sideways,
+fades at the right edge and keeps the open item in view. The menu button
+opens the same sidebar, with the logo and the close button on one line.
+Breadcrumbs are hidden on a phone.
+
+## Breadcrumbs
+
+Only the path by the hierarchy, one look, no chevron, hidden on a phone:
+`Projects / project` on the Overview, `Projects / project / Tasks` on a
+section, `Projects / project / domain` above every site page
+(`app/(dashboard)/sites/[siteId]/layout.tsx`; a site in none of the user's
+projects says "Sites without a project" and links to that block of
+`/projects`; the page title names the screen). Data sources, Groups and
+Settings have none.
 
 ## Site pages
-
-`app/(dashboard)/sites/[siteId]/layout.tsx` puts one line above every site
-page: the project (a link to it) and the domain. A site in none of the user's
-projects says "Sites without a project" and links to that block of
-`/projects`.
 
 Since UX step 3:
 
@@ -51,7 +108,9 @@ Since UX step 3:
 
 ## Projects page
 
-No All sites button. Since UX step 2 a table, not cards: Needs attention, then
+No All sites button, and since the navigation step A no Data sources and
+Groups buttons either (they are in the General block); New project only.
+Since UX step 2 a table, not cards: Needs attention, then
 the projects by `group`, prospects, paused and archived (folded), with a data
 column from the sources matrix and a paid until column (see
 [sources-and-billing.md](sources-and-billing.md)). Below them, while there are
@@ -69,14 +128,17 @@ or `null` clears it), or with the MCP tools `create_project` and
 `update_project`. `GET /projects` and `GET /projects/{slug}` return it with
 the passport. Renaming and ungrouping a whole group: see
 [projects.md](projects.md#groups). On `/projects` each named group's heading
-has a "⋯" menu (Rename, Ungroup) for its owners and editors; the header has a
-Groups button next to Data sources.
+has a "⋯" menu (Rename, Ungroup) for its owners and editors.
 
 ## Project page
 
-Six tabs since UX step 3 (`lib/projects/tabs.ts`):
+Six sections since UX step 3 (`lib/projects/tabs.ts`). Since the navigation
+step B they are items of the sidebar (and of the phone strip), not tabs on
+the page; the header has the name, the status badge and the number of sites.
+The Data section's "In the panel for all projects" link leads to
+`/projects/sources#p-{slug}`, where that row is highlighted.
 
-| Tab | `?tab=` | What it holds |
+| Section | `?tab=` | What it holds |
 | --- | --- | --- |
 | **Overview** | none (the default) | see below |
 | Tasks | `tasks` | |
@@ -106,6 +168,6 @@ The Overview only shows and links on, from data that is already there:
 - Open tasks: review first, then in progress, then to do; high priority and
   the earliest due first.
 - The latest journal entries, without the agent's platform sync lines (a short
-  line naming `crawlseo-sync`); the Journal tab still has them.
+  line naming `crawlseo-sync`); the Journal section still has them.
 
-No project: no switcher site line, "Add a domain" in the Overview.
+No site: "+ Add a domain" in the sidebar (editors and owners) and in the Overview.
