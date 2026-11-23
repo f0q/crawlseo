@@ -8,6 +8,7 @@ import { checksPerMonth, checksPerRun, limitState, NO_SOURCE, RANK_FREQUENCIES, 
 import type { RankSettingsView } from "@/lib/projects/rank";
 import { cn } from "@/lib/utils";
 import { ErrorLine, Field, inputClass, projectUrl, Section, send, SendError, useAction } from "./ui";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const T = M.rank;
 
@@ -41,6 +42,7 @@ function Meter({ value, limit, label }: { value: number; limit: number; label: s
 
 /** Project > Rank tracking: whether checks are started, where, how often, in which engines; usage against the limit. */
 export function RankSettingsSection({ slug, data, canEdit }: { slug: string; data: RankSettingsData; canEdit: boolean }) {
+  const timeZone = useTimeZone();
   const [enabled, setEnabled] = useState(data.settings.enabled);
   const [source, setSource] = useState(data.settings.source);
   const [frequency, setFrequency] = useState(data.settings.frequency as RankFrequency);
@@ -205,7 +207,7 @@ export function RankSettingsSection({ slug, data, canEdit }: { slug: string; dat
             {data.runs.map((r) => (
               <li key={r.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2 text-[13px]">
                 <span className="text-text-strong">
-                  {formatDay(r.createdAt, { year: true, time: true })} · {T.status[r.status] ?? r.status}
+                  {formatDay(r.createdAt, { year: true, time: true, timeZone })} · {T.status[r.status] ?? r.status}
                   {r.reason && <span className="text-muted-foreground"> ({T.reasons[r.reason] ?? r.reason})</span>}
                 </span>
                 <span className="mono-label text-[11px] text-muted-foreground">

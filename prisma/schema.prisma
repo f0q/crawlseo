@@ -119,6 +119,8 @@ model UserSettings {
   mcpEnabled         Boolean  @default(false) // Settings > MCP: access keys work only while this is on
   alertEmailTo       String? // Settings > Email alerts: recipients, comma-separated; null: none
   alertEmailEnabled  Boolean  @default(false) // fired alerts are emailed only while this is on
+  // Agency fork: the IANA zone date-times are shown in (lib/timezone.ts); storage stays UTC.
+  timeZone           String   @default("Asia/Makassar")
   updatedAt          DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

@@ -47,7 +47,8 @@ describe("crawl page status (#57)", () => {
     };
     const html = await render();
     expect(html).toContain("Last crawl failed");
-    expect(html).toContain("6 Oct 09:00 UTC");
+    // Agency fork: in the display time zone, Asia/Makassar (UTC+8) by default (lib/timezone.ts).
+    expect(html).toContain("6 Oct 17:00");
     expect(html).toContain("Interrupted: the server restarted or the crawl stopped responding");
     expect(html).not.toContain("Crawl in progress");
   });

@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDay } from "@/lib/format";
+import { getDisplayTimeZone } from "@/lib/timezone-server";
 import { problemLabel, sourceLabel, YANDEX_UI } from "@/lib/yandex/messages";
 import { metrikaReport, webmasterReport, type MetrikaReport, type WebmasterReport } from "@/lib/yandex/report";
 import { PageHeader } from "@/components/ui/page-header";
@@ -45,11 +46,12 @@ export default async function YandexPage({ params, searchParams }: Props) {
     );
   }
 
+  const timeZone = await getDisplayTimeZone();
   const meta = [
     T.page.period(days),
     T.page.vsPrevious,
-    ...(link.metrikaSyncedAt ? [`${T.page.metrika} ${T.page.updated(formatDay(link.metrikaSyncedAt, { time: true }))}`] : []),
-    ...(link.webmasterSyncedAt ? [`${T.page.webmaster} ${T.page.updated(formatDay(link.webmasterSyncedAt, { time: true }))}`] : []),
+    ...(link.metrikaSyncedAt ? [`${T.page.metrika} ${T.page.updated(formatDay(link.metrikaSyncedAt, { time: true, timeZone }))}`] : []),
+    ...(link.webmasterSyncedAt ? [`${T.page.webmaster} ${T.page.updated(formatDay(link.webmasterSyncedAt, { time: true, timeZone }))}`] : []),
   ].join(" · ");
 
   return (

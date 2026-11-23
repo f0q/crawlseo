@@ -20,6 +20,9 @@ import { webhookStatus } from "@/lib/webhooks/status";
 import { yandexStatus } from "@/lib/yandex/connection";
 import { yandexAuthorizeUrl, yandexCredentials } from "@/lib/yandex/oauth";
 import { YandexConnectionRow } from "@/components/yandex/connection-row";
+import { TimeZoneSection } from "@/components/settings/time-zone-section";
+import { readTimeZone } from "@/lib/timezone-server";
+import { timeZoneOptions } from "@/lib/timezone";
 
 /** Granted scopes from `User.googleTokens`, which keeps them in plain text next to the encrypted tokens. */
 function grantedScopes(stored: unknown): string[] {
@@ -60,13 +63,14 @@ export default async function SettingsPage({ searchParams }: Props) {
   if (!user) redirect("/login");
 
   const connected = hasToken(user.googleTokens);
-  const [keys, schedule, webhook, email, mcp, yandex] = await Promise.all([
+  const [keys, schedule, webhook, email, mcp, yandex, timeZone] = await Promise.all([
     apiKeyStatus(db, session.user.id),
     getScheduleSettings(db, session.user.id),
     webhookStatus(db, session.user.id),
     emailStatus(db, session.user.id),
     mcpStatus(db, session.user.id),
     yandexStatus(db, session.user.id),
+    readTimeZone(db, session.user.id),
   ]);
   const yandexCreds = yandexCredentials();
   const mcpEndpoint = `${await instanceOrigin()}/mcp`;
@@ -105,6 +109,16 @@ export default async function SettingsPage({ searchParams }: Props) {
             </div>
             <SignOutButton />
           </div>
+        </section>
+
+        {/* Agency fork: the display time zone (lib/timezone.ts). */}
+        <section id="time-zone" aria-labelledby="time-zone-heading" className="scroll-mt-6">
+          <SectionHeading
+            id="time-zone-heading"
+            title="Time zone"
+            description="Dates and times across crawlseo are shown in this zone."
+          />
+          <TimeZoneSection initial={timeZone} options={timeZoneOptions(timeZone)} />
         </section>
 
         <section id="connections" aria-labelledby="connections-heading" className="scroll-mt-6">

@@ -5,6 +5,8 @@ import { AppShell } from "@/components/layout/app-shell";
 import { APP_VERSION } from "@/lib/version";
 import { availableUpdate } from "@/lib/update-check";
 import { loadShellExtras } from "@/lib/projects/shell";
+import { getDisplayTimeZone } from "@/lib/timezone-server";
+import { TimeZoneProvider } from "@/components/timezone-provider";
 
 export default async function DashboardLayout({
   children,
@@ -33,22 +35,26 @@ export default async function DashboardLayout({
     : [];
   // Agency fork: the project switcher and whether DataForSEO is connected (lib/projects/shell.ts).
   const extras = await loadShellExtras(session.user);
+  // Agency fork: the user's display time zone for date-times (lib/timezone.ts).
+  const timeZone = await getDisplayTimeZone();
   const dataThrough = Object.fromEntries(
     latest.map((row) => [row.siteId, row._max.date?.toISOString().slice(0, 10) ?? null])
   );
 
   return (
-    <AppShell
-      email={session.user?.email}
-      name={session.user?.name}
-      image={session.user?.image}
-      version={APP_VERSION}
-      update={availableUpdate()}
-      sites={sites.map((s) => ({ ...s, dataThrough: dataThrough[s.id] ?? null }))}
-      showCloudPromo={process.env.CRAWLSEO_HIDE_CLOUD_PROMO?.trim().toLowerCase() !== "true"}
-      {...extras}
-    >
-      {children}
-    </AppShell>
+    <TimeZoneProvider zone={timeZone}>
+      <AppShell
+        email={session.user?.email}
+        name={session.user?.name}
+        image={session.user?.image}
+        version={APP_VERSION}
+        update={availableUpdate()}
+        sites={sites.map((s) => ({ ...s, dataThrough: dataThrough[s.id] ?? null }))}
+        showCloudPromo={process.env.CRAWLSEO_HIDE_CLOUD_PROMO?.trim().toLowerCase() !== "true"}
+        {...extras}
+      >
+        {children}
+      </AppShell>
+    </TimeZoneProvider>
   );
 }

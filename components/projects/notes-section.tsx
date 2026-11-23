@@ -7,6 +7,7 @@ import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { MAX_NOTE_BODY, NOTE_KINDS } from "@/lib/projects/schema";
 import { cn } from "@/lib/utils";
 import { ErrorLine, Field, inputClass, projectUrl, Section, send, textareaClass, useAction } from "./ui";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const T = M.notes;
 
@@ -14,7 +15,7 @@ export type NoteItem = { id: string; kind: string; title: string; body: string; 
 type Version = { version: number; title: string; body: string; updatedBy: string; createdAt: string };
 
 const kindLabel = (k: string) => (M.labels.noteKind as Record<string, string>)[k] ?? k;
-const when = (iso: string) => formatDay(new Date(iso), { year: true });
+const when = (iso: string, timeZone: string) => formatDay(new Date(iso), { year: true, timeZone });
 
 /**
  * The project's markdown notes: pick one to edit, or start a new one. A save
@@ -58,6 +59,7 @@ export function NotesSection({ slug, notes, canEdit }: { slug: string; notes: No
 }
 
 function NoteEditor({ slug, note, canEdit, onCreated }: { slug: string; note: NoteItem | null; canEdit: boolean; onCreated: (id: string) => void }) {
+  const timeZone = useTimeZone();
   const [kind, setKind] = useState(note?.kind ?? "brief");
   const [title, setTitle] = useState(note?.title ?? "");
   const [body, setBody] = useState(note?.body ?? "");
@@ -118,7 +120,7 @@ function NoteEditor({ slug, note, canEdit, onCreated }: { slug: string; note: No
           readOnly={!canEdit}
         />
       </Field>
-      {note && <p className="mono-label text-[11px] text-muted-foreground">{T.version(note.version, note.updatedBy, when(note.updatedAt))}</p>}
+      {note && <p className="mono-label text-[11px] text-muted-foreground">{T.version(note.version, note.updatedBy, when(note.updatedAt, timeZone))}</p>}
       <ErrorLine error={error} />
       <div className="flex flex-wrap items-center gap-3">
         {canEdit && (
@@ -143,7 +145,7 @@ function NoteEditor({ slug, note, canEdit, onCreated }: { slug: string; note: No
           {history.length === 0 && <p className="text-[13px] text-muted-foreground">{T.noHistory}</p>}
           {history.map((v) => (
             <details key={v.version} className="rounded-md border border-border-soft bg-bg-soft px-3 py-2">
-              <summary className="cursor-pointer text-[13px] text-text-strong">{T.version(v.version, v.updatedBy, when(v.createdAt))}</summary>
+              <summary className="cursor-pointer text-[13px] text-text-strong">{T.version(v.version, v.updatedBy, when(v.createdAt, timeZone))}</summary>
               <pre className="mt-2 max-h-80 overflow-auto font-data text-[12px] whitespace-pre-wrap text-muted-foreground">{v.body}</pre>
               {canEdit && (
                 <Button

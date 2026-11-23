@@ -5,6 +5,7 @@ import { CheckCircle2, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
 import type { EmailStatus, LastEmail } from "@/lib/email/status";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const FORM_MAX_WIDTH = "max-w-[560px]";
 const INPUT_CLASS =
@@ -14,8 +15,8 @@ const INPUT_CLASS =
 const ENV_VARS = ["SMTP_HOST", "SMTP_PORT", "SMTP_SECURE", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM"];
 
 /** The latest alert email in one line. */
-export function lastEmailLine(e: LastEmail): { ok: boolean; text: string } {
-  const at = formatDay(e.at, { year: true, time: true });
+export function lastEmailLine(e: LastEmail, timeZone?: string): { ok: boolean; text: string } {
+  const at = formatDay(e.at, { year: true, time: true, timeZone });
   switch (e.status) {
     case "sent":
       return { ok: true, text: `Last email: sent, ${at}.` };
@@ -25,7 +26,7 @@ export function lastEmailLine(e: LastEmail): { ok: boolean; text: string } {
     case "retrying":
       return {
         ok: false,
-        text: `Last email: attempt ${e.attempts} failed${e.error ? `: ${e.error}` : "."} Next attempt ${formatDay(e.nextAttemptAt ?? e.at, { time: true })}.`,
+        text: `Last email: attempt ${e.attempts} failed${e.error ? `: ${e.error}` : "."} Next attempt ${formatDay(e.nextAttemptAt ?? e.at, { time: true, timeZone })}.`,
       };
     case "failed":
       return { ok: false, text: `Last email failed after ${e.attempts} attempt(s), ${at}${e.error ? `: ${e.error}` : "."}` };
@@ -37,6 +38,7 @@ export function lastEmailLine(e: LastEmail): { ok: boolean; text: string } {
  * the SMTP server the operator set in the environment, and an on/off switch.
  */
 export function EmailSection({ initial }: { initial: EmailStatus }) {
+  const timeZone = useTimeZone();
   const id = useId();
   const [status, setStatus] = useState(initial);
   const [recipients, setRecipients] = useState(initial.recipients.join(", "));
@@ -111,7 +113,7 @@ export function EmailSection({ initial }: { initial: EmailStatus }) {
     }
   }
 
-  const last = status.lastEmail ? lastEmailLine(status.lastEmail) : null;
+  const last = status.lastEmail ? lastEmailLine(status.lastEmail, timeZone) : null;
 
   return (
     <form

@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
 import { pendingNote, waitForJob } from "@/lib/jobs/client";
 import { YANDEX_UI } from "@/lib/yandex/messages";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const T = YANDEX_UI.site;
 
@@ -46,6 +47,7 @@ export function YandexSiteSection({
   connected: boolean;
   initial: SiteLinkState;
 }) {
+  const timeZone = useTimeZone();
   const router = useRouter();
   const [link, setLink] = useState(initial);
   const [hosts, setHosts] = useState<Host[] | null>(null);
@@ -189,7 +191,7 @@ export function YandexSiteSection({
             {link.webmasterHostUrl ?? T.none}
             {link.webmasterHostId && (
               <span className="ml-2 font-data text-[12px] font-normal text-muted-foreground">
-                {link.webmasterSyncedAt ? formatDay(link.webmasterSyncedAt, { time: true }) : T.never}
+                {link.webmasterSyncedAt ? formatDay(link.webmasterSyncedAt, { time: true, timeZone }) : T.never}
               </span>
             )}
           </dd>
@@ -200,7 +202,7 @@ export function YandexSiteSection({
             {link.metrikaCounterId ? `${link.metrikaCounterName ?? ""} (${link.metrikaCounterId})` : T.none}
             {link.metrikaCounterId && (
               <span className="ml-2 font-data text-[12px] font-normal text-muted-foreground">
-                {link.metrikaSyncedAt ? formatDay(link.metrikaSyncedAt, { time: true }) : T.never}
+                {link.metrikaSyncedAt ? formatDay(link.metrikaSyncedAt, { time: true, timeZone }) : T.never}
               </span>
             )}
           </dd>

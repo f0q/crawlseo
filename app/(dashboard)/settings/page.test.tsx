@@ -59,6 +59,18 @@ describe("/account", () => {
 });
 
 describe("/settings", () => {
+  // Agency fork: the display time zone, Asia/Makassar until the user picks another.
+  it("shows the time zone setting with the default zone selected", async () => {
+    let html = await render();
+    expect(html).toContain(">Time zone</h2>");
+    expect(html).toMatch(/<option value="Asia\/Makassar" selected="">Asia\/Makassar \(GMT\+8\)<\/option>/);
+    expect(html).toContain("Europe/Moscow");
+
+    db.userSettings.findUnique.mockResolvedValue({ timeZone: "Europe/Moscow" });
+    html = await render();
+    expect(html).toMatch(/<option value="Europe\/Moscow" selected="">/);
+  });
+
   it("shows MCP off by default, with this instance's /mcp URL and the keys", async () => {
     let html = await render();
     expect(html).toContain(">MCP</h2>");

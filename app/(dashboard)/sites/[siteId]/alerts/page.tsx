@@ -6,6 +6,7 @@ import { ensureDefaultAlerts } from "@/lib/alerts/evaluate";
 import { PageHeader } from "@/components/ui/page-header";
 import { EvaluateAlertsButton } from "@/components/sites/evaluate-alerts-button";
 import { formatDay } from "@/lib/format";
+import { getDisplayTimeZone } from "@/lib/timezone-server";
 
 /** Names for types whose enum name does not read well. */
 const ALERT_LABELS: Record<string, string> = { NOINDEX_SITEWIDE: "most pages are noindex" };
@@ -30,6 +31,8 @@ export default async function AlertsPage({ params }: Props) {
     where: { userId: session!.user!.id, siteId },
     orderBy: { type: "asc" },
   });
+  // Agency fork: times in the user's zone (lib/timezone.ts).
+  const timeZone = await getDisplayTimeZone();
 
   return (
     <div>
@@ -65,7 +68,7 @@ export default async function AlertsPage({ params }: Props) {
               </p>
               <p className="text-xs text-muted-foreground">
                 {a.lastFired
-                  ? `Last fired ${formatDay(a.lastFired, { year: true, time: true })}`
+                  ? `Last fired ${formatDay(a.lastFired, { year: true, time: true, timeZone })}`
                   : "Never fired"}
               </p>
               <p className="mt-1 font-data text-[11px] text-muted-foreground">

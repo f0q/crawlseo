@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
 import type { KeyScope } from "@/lib/access-keys";
 import type { McpKeyView, McpStatus } from "@/lib/mcp-settings";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const INPUT_CLASS =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-brand-500 focus:bg-bg focus:outline-none aria-invalid:border-danger";
@@ -61,6 +62,7 @@ function OnOffBadge({ on }: { on: boolean }) {
  * shown once, right after it is created.
  */
 export function McpSection({ initial, endpoint }: { initial: McpStatus; endpoint: string }) {
+  const timeZone = useTimeZone();
   const id = useId();
   const [status, setStatus] = useState(initial);
   const [name, setName] = useState("");
@@ -251,7 +253,7 @@ export function McpSection({ initial, endpoint }: { initial: McpStatus; endpoint
                   </p>
                   <p className="text-xs text-muted-foreground">
                     <code className="font-data">{k.prefix}…</code> · created {formatDay(k.createdAt, { year: true })} ·{" "}
-                    {k.lastUsedAt ? `last used ${formatDay(k.lastUsedAt, { year: true, time: true })}` : "never used"}
+                    {k.lastUsedAt ? `last used ${formatDay(k.lastUsedAt, { year: true, time: true, timeZone })}` : "never used"}
                   </p>
                 </div>
                 {confirming === k.id ? (

@@ -5,14 +5,15 @@ import { CheckCircle2, Loader2, Webhook } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
 import type { LastDelivery, WebhookStatus } from "@/lib/webhooks/status";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const FORM_MAX_WIDTH = "max-w-[560px]";
 const INPUT_CLASS =
   "w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground focus:border-brand-500 focus:bg-bg focus:outline-none aria-invalid:border-danger";
 
 /** The latest delivery in one line. */
-export function deliveryLine(d: LastDelivery): { ok: boolean; text: string } {
-  const at = formatDay(d.at, { year: true, time: true });
+export function deliveryLine(d: LastDelivery, timeZone?: string): { ok: boolean; text: string } {
+  const at = formatDay(d.at, { year: true, time: true, timeZone });
   const http = d.httpStatus ? ` (HTTP ${d.httpStatus})` : "";
   switch (d.status) {
     case "delivered":
@@ -23,7 +24,7 @@ export function deliveryLine(d: LastDelivery): { ok: boolean; text: string } {
     case "retrying":
       return {
         ok: false,
-        text: `Last delivery: attempt ${d.attempts} failed${d.error ? `: ${d.error}` : "."} Next attempt ${formatDay(d.nextAttemptAt ?? d.at, { time: true })}.`,
+        text: `Last delivery: attempt ${d.attempts} failed${d.error ? `: ${d.error}` : "."} Next attempt ${formatDay(d.nextAttemptAt ?? d.at, { time: true, timeZone })}.`,
       };
     case "failed":
       return { ok: false, text: `Last delivery failed after ${d.attempts} attempt(s), ${at}${d.error ? `: ${d.error}` : "."}` };
@@ -42,6 +43,7 @@ function randomSecret(): string {
  * whenever alerts fire. Test sends a test event with the values in the form.
  */
 export function WebhookSection({ initial }: { initial: WebhookStatus }) {
+  const timeZone = useTimeZone();
   const id = useId();
   const [status, setStatus] = useState(initial);
   const [url, setUrl] = useState(initial.url ?? "");
@@ -98,7 +100,7 @@ export function WebhookSection({ initial }: { initial: WebhookStatus }) {
     }
   }
 
-  const last = status.lastDelivery ? deliveryLine(status.lastDelivery) : null;
+  const last = status.lastDelivery ? deliveryLine(status.lastDelivery, timeZone) : null;
 
   return (
     <form

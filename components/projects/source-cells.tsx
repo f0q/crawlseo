@@ -34,11 +34,11 @@ const TEXT: Record<CellState, string> = {
 
 export const stateLabel = (state: CellState) => T.states[state] ?? state;
 
-/** One line for a title attribute or a screen reader: source, state, last sync, error. */
-export function cellSummary(source: string, c: SourceCell): string {
+/** One line for a title attribute or a screen reader: source, state, last sync (in the user's zone), error. */
+export function cellSummary(source: string, c: SourceCell, timeZone?: string): string {
   return [
     `${T.names[source] ?? source}${c.paid ? ` (${T.paidMark})` : ""}: ${stateLabel(c.state)}`,
-    c.lastSync ? T.synced(formatDay(c.lastSync, { year: true })) : null,
+    c.lastSync ? T.synced(formatDay(c.lastSync, { year: true, time: true, timeZone })) : null,
     c.error,
   ]
     .filter(Boolean)
@@ -50,8 +50,8 @@ export function StateDot({ state, className }: { state: CellState; className?: s
 }
 
 /** Six dots in the order of the panel's columns, a link to the panel. */
-export function SourceDots({ row }: { row: SourceProjectRow }) {
-  const summary = SOURCE_IDS.map((id) => cellSummary(id, row.cells[id])).join("; ");
+export function SourceDots({ row, timeZone }: { row: SourceProjectRow; timeZone?: string }) {
+  const summary = SOURCE_IDS.map((id) => cellSummary(id, row.cells[id], timeZone)).join("; ");
   const counted = SOURCE_IDS.filter((id) => !["not-connected", "no-site", "off"].includes(row.cells[id].state));
   const ok = counted.filter((id) => row.cells[id].state === "ok").length;
   return (
@@ -67,14 +67,14 @@ export function SourceDots({ row }: { row: SourceProjectRow }) {
 }
 
 /** A cell of the panel: the state, the last sync, the error on hover (and as text for screen readers). */
-export function SourceCellView({ source, cell }: { source: string; cell: SourceCell }) {
+export function SourceCellView({ source, cell, timeZone }: { source: string; cell: SourceCell; timeZone?: string }) {
   const body = (
-    <span className="flex flex-col gap-0.5" title={cellSummary(source, cell)}>
+    <span className="flex flex-col gap-0.5" title={cellSummary(source, cell, timeZone)}>
       <span className={cn("inline-flex items-center gap-1.5 text-[13px]", TEXT[cell.state])}>
         <StateDot state={cell.state} />
         {stateLabel(cell.state)}
       </span>
-      {cell.lastSync && <span className="font-data text-[11px] text-muted-foreground">{formatDay(cell.lastSync, { year: true })}</span>}
+      {cell.lastSync && <span className="font-data text-[11px] text-muted-foreground">{formatDay(cell.lastSync, { year: true, timeZone })}</span>}
       {cell.error && <span className="line-clamp-2 max-w-[180px] text-[11px] leading-4 text-danger">{cell.error}</span>}
     </span>
   );
@@ -88,7 +88,7 @@ export function SourceCellView({ source, cell }: { source: string; cell: SourceC
 }
 
 /** The project's data sources in one row (Overview). */
-export function SourcesStrip({ row }: { row: SourceProjectRow }) {
+export function SourcesStrip({ row, timeZone }: { row: SourceProjectRow; timeZone?: string }) {
   return (
     <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
       {SOURCE_IDS.map((id) => (
@@ -97,7 +97,7 @@ export function SourcesStrip({ row }: { row: SourceProjectRow }) {
             {T.names[id]}
             {row.cells[id].paid ? ` · ${T.paidMark}` : ""}
           </span>
-          <SourceCellView source={id} cell={row.cells[id]} />
+          <SourceCellView source={id} cell={row.cells[id]} timeZone={timeZone} />
         </li>
       ))}
     </ul>

@@ -31,12 +31,12 @@ const T = M.overview;
  * what needs attention, each site's numbers, rank tracking, open tasks and
  * the latest journal entries. Nothing here edits anything.
  */
-export function OverviewSection({ slug, data }: { slug: string; data: ProjectOverview }) {
+export function OverviewSection({ slug, data, timeZone }: { slug: string; data: ProjectOverview; timeZone?: string }) {
   const reviewing = data.tasks.byStatus.review ?? 0;
   const attention = [
     ...data.alerts.map((a) => ({
       key: a.id,
-      text: T.alertFired(T.alertTypes[a.type] ?? a.type, a.domain, formatDay(a.lastFired, { time: true })),
+      text: T.alertFired(T.alertTypes[a.type] ?? a.type, a.domain, formatDay(a.lastFired, { time: true, timeZone })),
       href: `/sites/${a.siteId}/alerts`,
       action: T.openAlerts,
     })),
@@ -102,7 +102,7 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
               {M.sources.allSources}
             </Link>
           </div>
-          <SourcesStrip row={data.sources} />
+          <SourcesStrip row={data.sources} timeZone={timeZone} />
         </section>
       )}
 
@@ -115,7 +115,7 @@ export function OverviewSection({ slug, data }: { slug: string; data: ProjectOve
           {data.rank.enabled && (
             <span className="text-muted-foreground">
               {" · "}
-              {data.rank.lastStarted ? T.rankLast(formatDay(data.rank.lastStarted, { year: true })) : T.rankNever}
+              {data.rank.lastStarted ? T.rankLast(formatDay(data.rank.lastStarted, { year: true, timeZone })) : T.rankNever}
             </span>
           )}
         </p>

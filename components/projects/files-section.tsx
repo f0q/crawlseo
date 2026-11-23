@@ -8,6 +8,7 @@ import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { FILE_CATEGORIES } from "@/lib/projects/schema";
 import { ACCEPT_ATTRIBUTE, ALLOWED_EXTENSIONS, MAX_UPLOAD_BYTES, MAX_UPLOAD_MB } from "@/lib/projects/file-types";
 import { ErrorLine, Field, inputClass, projectUrl, Section, send, useAction } from "./ui";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const T = M.files;
 
@@ -17,6 +18,7 @@ const size = (n: number) => (n < 1024 * 1024 ? `${Math.max(1, Math.round(n / 102
 
 /** Upload, list, download (always as an attachment) and delete the project's files. */
 export function FilesSection({ slug, files, canEdit }: { slug: string; files: FileItem[]; canEdit: boolean }) {
+  const timeZone = useTimeZone();
   const input = useRef<HTMLInputElement>(null);
   const [category, setCategory] = useState<string>("materials");
   const { busy, error, setError, run } = useAction();
@@ -63,7 +65,7 @@ export function FilesSection({ slug, files, canEdit }: { slug: string; files: Fi
               <div className="min-w-0">
                 <p className="truncate text-[14px] text-text-strong">{f.name}</p>
                 <p className="mono-label text-[11px] text-muted-foreground">
-                  {(M.labels.fileCategory as Record<string, string>)[f.category] ?? f.category} · {size(f.size)} · {T.by(f.uploadedBy, formatDay(f.createdAt, { year: true }))}
+                  {(M.labels.fileCategory as Record<string, string>)[f.category] ?? f.category} · {size(f.size)} · {T.by(f.uploadedBy, formatDay(f.createdAt, { year: true, timeZone }))}
                 </p>
               </div>
               <div className="flex items-center gap-2">

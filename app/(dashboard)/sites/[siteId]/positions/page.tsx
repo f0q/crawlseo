@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { cn } from "@/lib/utils";
 import { formatDay } from "@/lib/format";
+import { getDisplayTimeZone } from "@/lib/timezone-server";
 import { linkedEngines, type LinkedEngine } from "@/lib/rank-providers/links";
 import { RANK_UI } from "@/lib/rank-providers/messages";
 import { comparisonRows, positionsReport, type Buckets } from "@/lib/rank-providers/report";
@@ -114,7 +115,7 @@ export default async function PositionsPage({ params, searchParams }: Props) {
     ? [
         T.page.checkOf(formatDay(report.date, { year: true })),
         report.previousDate ? T.page.comparedTo(formatDay(report.previousDate, { year: true })) : T.page.noPrevious,
-        ...(engine.lastSyncedAt ? [T.page.lastSynced(formatDay(engine.lastSyncedAt, { time: true }))] : []),
+        ...(engine.lastSyncedAt ? [T.page.lastSynced(formatDay(engine.lastSyncedAt, { time: true, timeZone: await getDisplayTimeZone() }))] : []),
         ...(comparisonMeta ? [comparisonMeta] : []),
       ].join(" · ")
     : undefined;

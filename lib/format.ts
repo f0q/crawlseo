@@ -1,3 +1,5 @@
+import { fallbackTimeZone, isValidTimeZone, zonedParts } from "@/lib/timezone";
+
 export function cnDelta(value: number, invert = false): string {
   const good = invert ? value < 0 : value > 0;
   const bad = invert ? value > 0 : value < 0;
@@ -25,21 +27,29 @@ const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "
  * The one date format of the app: "3 Oct", "3 Oct 2026" with the year,
  * "3 Oct 14:02 UTC" with the time. Read in UTC, like the GSC dates.
  * A plain "YYYY-MM-DD" string is taken as that calendar day.
+ *
+ * Agency fork: `timeZone` shows an instant in the user's display zone
+ * (lib/timezone.ts): "3 Oct 22:02", with no suffix unless the zone is UTC.
+ * With `time` and no `timeZone`, the browser uses the signed-in user's zone
+ * and the server UTC. Without `time`, only an explicit `timeZone` moves the
+ * day, so calendar days (GSC, journal dates) stay as they are; a
+ * "YYYY-MM-DD" string is never shifted.
  */
 export function formatDay(
   value: Date | string,
-  { year = false, time = false }: { year?: boolean; time?: boolean } = {}
+  { year = false, time = false, timeZone }: { year?: boolean; time?: boolean; timeZone?: string } = {}
 ): string {
-  const d =
-    typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value)
-      ? new Date(`${value}T00:00:00Z`)
-      : new Date(value);
-  let out = `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]}`;
-  if (year) out += ` ${d.getUTCFullYear()}`;
+  const calendarDay = typeof value === "string" && /^\d{4}-\d{2}-\d{2}$/.test(value);
+  const d = calendarDay ? new Date(`${value}T00:00:00Z`) : new Date(value);
+  const wanted = calendarDay ? "UTC" : (timeZone ?? (time ? fallbackTimeZone() : "UTC"));
+  const zone = isValidTimeZone(wanted) ? wanted : "UTC";
+  const p = zonedParts(d, zone);
+  let out = `${p.day} ${MONTHS[p.month]}`;
+  if (year) out += ` ${p.year}`;
   if (time) {
-    const hh = String(d.getUTCHours()).padStart(2, "0");
-    const mm = String(d.getUTCMinutes()).padStart(2, "0");
-    out += ` ${hh}:${mm} UTC`;
+    const hh = String(p.hour).padStart(2, "0");
+    const mm = String(p.minute).padStart(2, "0");
+    out += ` ${hh}:${mm}${zone === "UTC" ? " UTC" : ""}`;
   }
   return out;
 }

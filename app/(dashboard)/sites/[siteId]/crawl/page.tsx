@@ -7,6 +7,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { CrawlButton } from "@/components/sites/action-buttons";
 import { CrawlStatusPoller } from "@/components/sites/crawl-status-poller";
 import { CrawlFailedNotice } from "@/components/sites/crawl-failed-notice";
+import { getDisplayTimeZone } from "@/lib/timezone-server";
 import { CrawledPagesTable, type IndexFilter } from "@/components/sites/crawled-pages-table";
 import { NoindexWarningNotice } from "@/components/sites/noindex-warning";
 import { getNoindexWarning } from "@/lib/crawler/noindex-warning";
@@ -92,7 +93,7 @@ export default async function CrawlPage({ params, searchParams }: Props) {
       {activeCrawl && (
         <CrawlStatusPoller key={activeCrawl.jobId} jobId={activeCrawl.jobId} status={activeCrawl.status} />
       )}
-      {failedCrawl && <CrawlFailedNotice error={failedCrawl.error} finishedAt={failedCrawl.finishedAt} />}
+      {failedCrawl && <CrawlFailedNotice error={failedCrawl.error} finishedAt={failedCrawl.finishedAt} timeZone={await getDisplayTimeZone()} />}
 
       {!latest ? (
         <EmptyState

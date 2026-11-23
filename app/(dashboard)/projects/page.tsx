@@ -9,6 +9,7 @@ import { projectsHome, type HomeReason, type HomeRow } from "@/lib/projects/home
 import type { NavSite } from "@/lib/projects/navigation";
 import { formatMoney } from "@/lib/projects/rank-usage";
 import { SourceDots } from "@/components/projects/source-cells";
+import { getDisplayTimeZone } from "@/lib/timezone-server";
 import { cn } from "@/lib/utils";
 import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -28,6 +29,7 @@ export default async function ProjectsPage() {
   const session = await auth();
   const actor = sessionActor(session?.user);
   const [home, nav] = actor ? await Promise.all([projectsHome(actor), loadProjectNav(actor)]) : [null, null];
+  const timeZone = await getDisplayTimeZone();
   // Sites of the user that are in none of their projects: listed below, never hidden.
   const unassigned = nav?.unassigned ?? [];
 
@@ -78,7 +80,7 @@ export default async function ProjectsPage() {
       {home.groups.map((g) => {
         const title = g.kind === "attention" ? H.attention : g.kind === "prospects" ? H.prospects : g.kind === "stopped" ? H.stopped : (g.name ? T.groupLabel(g.name) : T.ungrouped);
         const showTitle = g.kind !== "group" || g.name !== null;
-        const table = <HomeTable rows={g.rows} attention={g.kind === "attention"} />;
+        const table = <HomeTable rows={g.rows} attention={g.kind === "attention"} timeZone={timeZone} />;
         if (g.kind === "stopped") {
           return (
             <details key={g.key} className="mb-6">
@@ -118,7 +120,7 @@ function reasonText(r: HomeReason): string {
 }
 
 /** One group as a table on wide screens; on a phone each row is a card with only what is not in order. */
-function HomeTable({ rows, attention }: { rows: HomeRow[]; attention: boolean }) {
+function HomeTable({ rows, attention, timeZone }: { rows: HomeRow[]; attention: boolean; timeZone: string }) {
   return (
     <div className="panel divide-y divide-border">
       <div aria-hidden className={cn("mono-label hidden px-4 py-2 text-[11px] text-muted-foreground", ROW_GRID)}>
@@ -131,14 +133,14 @@ function HomeTable({ rows, attention }: { rows: HomeRow[]; attention: boolean })
       </div>
       <ul className="divide-y divide-border">
         {rows.map((r) => (
-          <HomeRowView key={r.project.id} row={r} attention={attention} />
+          <HomeRowView key={r.project.id} row={r} attention={attention} timeZone={timeZone} />
         ))}
       </ul>
     </div>
   );
 }
 
-function HomeRowView({ row, attention }: { row: HomeRow; attention: boolean }) {
+function HomeRowView({ row, attention, timeZone }: { row: HomeRow; attention: boolean; timeZone: string }) {
   const p = row.project;
   const b = row.sources.billing;
   const late = b.level === "overdue" || b.level === "paused";
@@ -155,7 +157,7 @@ function HomeRowView({ row, attention }: { row: HomeRow; attention: boolean }) {
         <StatusBadge status={p.status} />
       </div>
       <div className={cn(!attention && "hidden md:block")}>
-        <SourceDots row={row.sources} />
+        <SourceDots row={row.sources} timeZone={timeZone} />
       </div>
       <div className={cn("font-data text-[12px]", late ? "text-warning" : "text-muted-foreground", !b.tracked && "hidden md:block")}>
         <span className="md:hidden">{H.paidUntil}: </span>

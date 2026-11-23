@@ -4,6 +4,8 @@ import { useState } from "react";
 import { Bot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatDay } from "@/lib/format";
+import { todayIn } from "@/lib/timezone";
+import { useTimeZone } from "@/components/timezone-provider";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { ErrorLine, Field, inputClass, projectUrl, Section, send, textareaClass, useAction } from "./ui";
 
@@ -23,7 +25,9 @@ export function JournalSection({
   sites: { id: string; domain: string }[];
   canEdit: boolean;
 }) {
-  const [date, setDate] = useState(() => new Date().toISOString().slice(0, 10));
+  // Agency fork: a new entry is dated today in the user's display zone.
+  const timeZone = useTimeZone();
+  const [date, setDate] = useState(() => todayIn(timeZone));
   const [text, setText] = useState("");
   const [link, setLink] = useState("");
   const [siteId, setSiteId] = useState("");

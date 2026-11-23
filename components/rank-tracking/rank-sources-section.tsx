@@ -12,6 +12,7 @@ import { RANK_UI } from "@/lib/rank-providers/messages";
 import type { LinkedEngine } from "@/lib/rank-providers/links";
 import type { RankProjectWithEngines } from "@/lib/rank-providers/types";
 import { RankImport } from "./rank-import";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const T = RANK_UI.settings;
 
@@ -40,6 +41,7 @@ export function RankSourcesSection({
   linked: LinkedEngine[];
   providers: ProviderOption[];
 }) {
+  const timeZone = useTimeZone();
   const router = useRouter();
   const [connecting, setConnecting] = useState(false);
   const [importing, setImporting] = useState(false);
@@ -220,7 +222,7 @@ export function RankSourcesSection({
               </span>
               <span className="flex items-center gap-2">
                 <span className="mono-label text-[11px] text-muted-foreground">
-                  {e.lastSyncedAt ? T.syncedAt(formatDay(e.lastSyncedAt, { time: true })) : T.never}
+                  {e.lastSyncedAt ? T.syncedAt(formatDay(e.lastSyncedAt, { time: true, timeZone })) : T.never}
                 </span>
                 {confirming === e.id ? (
                   <Button type="button" size="xs" variant="destructive" disabled={busy !== null} onClick={() => void handleRemove(e)}>

@@ -7,16 +7,17 @@ import { billingState, type BillingState } from "@/lib/projects/billing-rule";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { cn } from "@/lib/utils";
 import { ErrorLine, Field, inputClass, projectUrl, Section, send, useAction } from "./ui";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const T = M.billing;
 const day = (d: string | null) => (d ? formatDay(d, { year: true }) : "");
 
 /** What the rule makes of the dates, in words. */
-export function billingText(s: BillingState): string {
+export function billingText(s: BillingState, timeZone?: string): string {
   if (!s.tracked) return T.state.none;
   const until = day(s.paidUntil);
   if (s.level === "paused") {
-    return T.state.paused(T.state.reasons[s.pauseReason ?? "overdue"] ?? "", s.pausedAt ? formatDay(s.pausedAt, { year: true }) : null);
+    return T.state.paused(T.state.reasons[s.pauseReason ?? "overdue"] ?? "", s.pausedAt ? formatDay(s.pausedAt, { year: true, timeZone }) : null);
   }
   if (s.level === "overdue") {
     const parts = [];
@@ -48,6 +49,7 @@ export function BillingSection({
   pausedAt: string | null;
   canEdit: boolean;
 }) {
+  const timeZone = useTimeZone();
   const [form, setForm] = useState({ paidUntil: paidUntil ?? "", contractEnd: contractEnd ?? "", neverPause });
   const [saved, setSaved] = useState(false);
   const { busy, error, run } = useAction();
@@ -111,7 +113,7 @@ export function BillingSection({
             preview.level === "paused" ? "border-danger/30 bg-danger-bg text-danger" : preview.level === "overdue" ? "border-warning/30 bg-warning-bg text-warning" : "border-border text-muted-foreground"
           )}
         >
-          {billingText(preview)}
+          {billingText(preview, timeZone)}
         </p>
         <ErrorLine error={error} />
         {canEdit ? (

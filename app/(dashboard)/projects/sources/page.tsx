@@ -6,6 +6,7 @@ import { sessionActor } from "@/lib/projects/dashboard";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { groupProjects } from "@/lib/projects/navigation";
 import { projectTabHref } from "@/lib/projects/tabs";
+import { getDisplayTimeZone } from "@/lib/timezone-server";
 import {
   GSC_STALE_DAYS,
   SCHEDULE_GRACE_DAYS,
@@ -32,7 +33,7 @@ export default async function SourcesPage() {
   const session = await auth();
   const actor = sessionActor(session?.user);
   if (!actor) redirect("/login");
-  const { projects, totals } = await sourcesMatrix(actor);
+  const [{ projects, totals }, timeZone] = await Promise.all([sourcesMatrix(actor), getDisplayTimeZone()]);
 
   if (projects.length === 0) {
     return (
@@ -72,7 +73,7 @@ export default async function SourcesPage() {
                 </tr>
               )}
               {g.projects.map((p) => (
-                <ProjectRows key={p.id} row={p} />
+                <ProjectRows key={p.id} row={p} timeZone={timeZone} />
               ))}
             </tbody>
           ))}
@@ -100,7 +101,7 @@ export default async function SourcesPage() {
   );
 }
 
-function ProjectRows({ row }: { row: SourceProjectRow }) {
+function ProjectRows({ row, timeZone }: { row: SourceProjectRow; timeZone: string }) {
   const several = row.sites.length > 1;
   return (
     <>
@@ -120,7 +121,7 @@ function ProjectRows({ row }: { row: SourceProjectRow }) {
         {row.sites.length === 0 ? (
           <>
             <td className="px-3 py-3">
-              <PositionsCell row={row} />
+              <PositionsCell row={row} timeZone={timeZone} />
             </td>
             <td colSpan={SOURCE_IDS.length - 1} className="px-3 py-3 text-[13px] text-muted-foreground">
               {T.noSite} ·{" "}
@@ -132,7 +133,7 @@ function ProjectRows({ row }: { row: SourceProjectRow }) {
         ) : (
           SOURCE_IDS.map((id) => (
             <td key={id} className="px-3 py-3">
-              {id === "positions" ? <PositionsCell row={row} /> : <SourceCellView source={id} cell={row.cells[id]} />}
+              {id === "positions" ? <PositionsCell row={row} timeZone={timeZone} /> : <SourceCellView source={id} cell={row.cells[id]} timeZone={timeZone} />}
             </td>
           ))
         )}
@@ -145,7 +146,7 @@ function ProjectRows({ row }: { row: SourceProjectRow }) {
             </th>
             {SOURCE_IDS.map((id) => (
               <td key={id} className="px-3 py-2">
-                <SourceCellView source={id} cell={s.cells[id]} />
+                <SourceCellView source={id} cell={s.cells[id]} timeZone={timeZone} />
               </td>
             ))}
           </tr>
@@ -165,13 +166,13 @@ function billingLine(row: SourceProjectRow): string | null {
 }
 
 /** The project's paid rank checks: the state and, for editors, the on/off switch. */
-function PositionsCell({ row }: { row: SourceProjectRow }) {
+function PositionsCell({ row, timeZone }: { row: SourceProjectRow; timeZone: string }) {
   const freq = (M.rank.frequencies as Record<string, string>)[row.rank.frequency] ?? row.rank.frequency;
   return (
     <span className="flex flex-col gap-1.5">
       <span className="flex items-start gap-2">
         {row.rank.canToggle && <RankToggle slug={row.slug} enabled={row.rank.enabled} name={row.name} />}
-        <SourceCellView source="positions" cell={row.cells.positions} />
+        <SourceCellView source="positions" cell={row.cells.positions} timeZone={timeZone} />
       </span>
       {row.rank.sourceName && row.rank.enabled && (
         <span className="text-[11px] text-muted-foreground">

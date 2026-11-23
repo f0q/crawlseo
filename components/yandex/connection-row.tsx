@@ -15,6 +15,7 @@ import {
 } from "@/components/ui/dialog";
 import { formatDay } from "@/lib/format";
 import { YANDEX_UI } from "@/lib/yandex/messages";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const T = YANDEX_UI.connection;
 
@@ -38,6 +39,7 @@ const INPUT_CLASS =
  * here and the server exchanges it for tokens.
  */
 export function YandexConnectionRow({ initial }: { initial: YandexConnectionState }) {
+  const timeZone = useTimeZone();
   const router = useRouter();
   const [state, setState] = useState(initial);
   const [expanded, setExpanded] = useState(false);
@@ -83,8 +85,8 @@ export function YandexConnectionRow({ initial }: { initial: YandexConnectionStat
   const detail = state.connected
     ? [
         state.login ? T.as(state.login) : T.asUnknown,
-        state.expiresAt ? T.expires(formatDay(state.expiresAt, { year: true })) : null,
-        state.connectedAt ? T.since(formatDay(state.connectedAt, { year: true })) : null,
+        state.expiresAt ? T.expires(formatDay(state.expiresAt, { year: true, timeZone })) : null,
+        state.connectedAt ? T.since(formatDay(state.connectedAt, { year: true, timeZone })) : null,
       ]
         .filter(Boolean)
         .join(" · ")

@@ -11,6 +11,7 @@ import {
   type MetricHeader,
 } from "@/components/ui/data-table";
 import { formatDay } from "@/lib/format";
+import { useTimeZone } from "@/components/timezone-provider";
 
 const HEADERS: MetricHeader[] = [
   { label: "URL", sortKey: "url", defaultDir: "asc" },
@@ -35,6 +36,7 @@ export interface VitalsRowData {
 }
 
 export function VitalsTable({ rows }: { rows: VitalsRowData[] }) {
+  const timeZone = useTimeZone();
   const [search, setSearch] = useState("");
   const { sort, toggle } = useTableSort({ key: "date", dir: "desc" });
 
@@ -95,7 +97,7 @@ export function VitalsTable({ rows }: { rows: VitalsRowData[] }) {
                 {r.ttfb != null ? `${r.ttfb.toFixed(2)}s` : "n/a"}
               </td>
               <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                {formatDay(r.date, { year: true, time: true })}
+                {formatDay(r.date, { year: true, time: true, timeZone })}
               </td>
             </tr>
           ))}

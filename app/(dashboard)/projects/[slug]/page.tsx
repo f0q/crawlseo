@@ -29,6 +29,7 @@ import { projectOverview } from "@/lib/projects/overview";
 import { sourcesMatrix } from "@/lib/projects/sources";
 import { SourcesStrip } from "@/components/projects/source-cells";
 import { PROJECT_TABS, projectTabHref, resolveProjectTab } from "@/lib/projects/tabs";
+import { getDisplayTimeZone } from "@/lib/timezone-server";
 
 const iso = (d: Date) => d.toISOString();
 
@@ -63,10 +64,12 @@ export default async function ProjectPage({
   const month = MONTH_PATTERN.test(String(query.month)) ? String(query.month) : undefined;
   if (resolved.legacy) redirect(projectTabHref(slug, resolved.tab, { section: resolved.section, query: { month } }));
   const { tab } = resolved;
+  // Agency fork: date-times in the user's display zone (lib/timezone.ts).
+  const timeZone = await getDisplayTimeZone();
 
   let body: React.ReactNode;
   if (tab === "overview") {
-    body = <OverviewSection slug={slug} data={await projectOverview(actor, slug)} />;
+    body = <OverviewSection slug={slug} data={await projectOverview(actor, slug)} timeZone={timeZone} />;
   } else if (tab === "about") {
     const [{ notes }, { files }, groups] = await Promise.all([listNotes(actor, slug), listFiles(actor, slug), listGroups(actor)]);
     body = (
@@ -107,7 +110,7 @@ export default async function ProjectPage({
                 {M.sources.allSources}
               </Link>
             </div>
-            <SourcesStrip row={sourcesRow} />
+            <SourcesStrip row={sourcesRow} timeZone={timeZone} />
           </section>
         )}
         <div id="sites" className="flex scroll-mt-20 flex-col gap-5">
