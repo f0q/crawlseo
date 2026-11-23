@@ -122,11 +122,12 @@ export function AppShell({ email, name, image, version, update, children, sites,
       <ProjectSidebar nav={nav} research={research} collapsed={collapsed} />
 
       {/* Agency fork: the bottom stays in view while the middle scrolls; the General block sits above the user. */}
-      <div className="sticky bottom-0 mt-auto -mb-5 flex flex-col gap-3 bg-sidebar pb-5">
+      {/* Agency fork: a tinted footer panel (General + the user), separated from the client's navigation above. */}
+      <div className={cn("sticky bottom-0 mt-auto -mb-5 flex flex-col gap-3 border-t border-sidebar-border bg-border-soft pt-3 pb-5", collapsed ? "-mx-2 px-2" : "-mx-3 px-3")}>
         {showCloudPromo && !collapsed && <CloudPromo />}
 
         {!collapsed && activeSite && (
-          <div className="flex flex-col gap-1 border-t border-border px-2.5 pt-3 text-[11px] leading-4 text-muted-foreground">
+          <div className="flex flex-col gap-1 px-2.5 text-[11px] leading-4 text-muted-foreground">
             <span className="mono-label">
               {dataThrough ? `GSC data through ${formatDay(dataThrough)}` : "No GSC data yet"}
             </span>

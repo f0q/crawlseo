@@ -22,7 +22,13 @@ export function GlobalNav({ collapsed = false }: { collapsed?: boolean }) {
         <p className="px-2.5 pb-1.5 text-[12px] leading-4 text-muted-foreground">{M.nav.general}</p>
       )}
       {generalNav(pathname).map((item) => (
-        <NavItemLink key={item.href} item={item} collapsed={collapsed} />
+        <NavItemLink
+          key={item.href}
+          item={item}
+          collapsed={collapsed}
+          withIcon
+          className={item.active ? "bg-white font-medium text-text-strong shadow-sm" : "hover:bg-white/70"}
+        />
       ))}
     </nav>
   );
