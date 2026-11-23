@@ -89,7 +89,7 @@ describe("project group in /api/v1", () => {
 });
 
 describe("groupProjects", () => {
-  it("puts named groups in alphabetical order, the ungrouped last, clients before prospects inside a group", () => {
+  it("puts named groups in alphabetical order, the ungrouped first, clients before prospects inside a group", () => {
     const p = (name: string, status: string, group: string | null) => ({ name, status, group });
     const groups = groupProjects([
       p("Zen", "prospect", null),
@@ -99,9 +99,9 @@ describe("groupProjects", () => {
       p("Sneaker", "client", "beta"),
       p("Flexique", "client", " Centro Adelante "),
     ]);
-    expect(groups.map((g) => g.name)).toEqual(["beta", "Centro Adelante", null]);
-    expect(groups[1].projects.map((x) => x.name)).toEqual(["Flexique", "Italica", "Market"]);
-    expect(groups[2].projects.map((x) => x.name)).toEqual(["Zen", "Acme"]);
+    expect(groups.map((g) => g.name)).toEqual([null, "beta", "Centro Adelante"]);
+    expect(groups[2].projects.map((x) => x.name)).toEqual(["Flexique", "Italica", "Market"]);
+    expect(groups[0].projects.map((x) => x.name)).toEqual(["Zen", "Acme"]);
   });
 });
 
@@ -110,10 +110,10 @@ describe("the project switcher", () => {
     await db.site.create({ data: { id: "site-orphan", userId: "user-a", domain: "orphan.example" } });
     const nav = await loadProjectNav(userA);
     expect(nav.groups.map((g) => [g.name, g.projects.map((p) => p.slug)])).toEqual([
-      ["Adelante", ["centro-italica"]],
       [null, ["quilltab"]],
+      ["Adelante", ["centro-italica"]],
     ]);
-    expect(nav.groups[1].projects[0].sites).toEqual([{ id: "site-a", domain: "quilltab.app" }]);
+    expect(nav.groups[0].projects[0].sites).toEqual([{ id: "site-a", domain: "quilltab.app" }]);
     expect(nav.unassigned).toEqual([{ id: "site-orphan", domain: "orphan.example" }]);
     // Never another user's project or site.
     expect(JSON.stringify(nav)).not.toMatch(/secret/);

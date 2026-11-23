@@ -19,7 +19,7 @@ const STATUS_RANK = new Map<string, number>(PROJECT_STATUSES.map((s, i) => [s, i
 const byText = (a: string, b: string) => a.localeCompare(b, undefined, { sensitivity: "base" });
 
 /**
- * Projects by `group`: named groups in alphabetical order, the ungrouped last.
+ * Projects by `group`: the ungrouped first (shown without a heading), then named groups in alphabetical order.
  * Inside a group: clients, prospects, paused, archived, then by name.
  */
 export function groupProjects<T extends { name: string; status: string; group: string | null }>(projects: T[]): NavGroup<T>[] {
@@ -32,7 +32,7 @@ export function groupProjects<T extends { name: string; status: string; group: s
   }
   const rank = (s: string) => STATUS_RANK.get(s) ?? STATUS_RANK.size;
   return [...groups.entries()]
-    .sort(([a], [b]) => (a === null ? 1 : b === null ? -1 : byText(a, b)))
+    .sort(([a], [b]) => (a === null ? -1 : b === null ? 1 : byText(a, b)))
     .map(([name, list]) => ({
       name,
       projects: [...list].sort((a, b) => rank(a.status) - rank(b.status) || byText(a.name, b.name)),
