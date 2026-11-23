@@ -257,6 +257,27 @@ export const PROJECT_MESSAGES = {
     spendingTitle: "Spending",
   },
 
+  // Agency fork: Money > Paid collection (lib/projects/paid-collection.ts).
+  paid: {
+    title: "Paid collection",
+    description:
+      "Data that costs money per check. Each source runs only when its switch is on, the payment is not paused and the project is not paused or archived. Free sources (Search Console, Yandex, crawl, speed) are not affected.",
+    sources: {
+      rank: { label: "Rank checks", hint: "Positions from a paid provider (Labrika). Source, engines and frequency are in Data > Rank tracking." },
+      ai: { label: "AI visibility", hint: "Customer questions to Perplexity, ChatGPT and Gemini with web search (OpenRouter), run by the agent." },
+    } as Record<string, { label: string; hint: string }>,
+    state: {
+      allowed: "Runs",
+      off: "Off",
+      billing: "Paused: payment",
+      status: "Stopped: project paused or archived",
+      missing: "Unknown project",
+    } as Record<string, string>,
+    onButBlocked: "On, but not running now",
+    rankSettings: "Rank tracking settings",
+    readOnly: "Editors and owners turn paid sources on and off.",
+  },
+
   detail: {
     // Navigation step B: the status is the badge next to the title, the role is not repeated.
     meta: (sites: number) => `${sites} site${sites === 1 ? "" : "s"}`,

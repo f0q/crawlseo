@@ -620,6 +620,8 @@ model Project {
   billingNeverPause Boolean   @default(false) // true: the billing rule never pauses paid collection
   paidPausedAt      DateTime? // set by the billing rule while paid collection is auto-paused; separate from rank on/off and status
   paidPauseReason   String? // overdue | contract-ended
+  // Agency fork: manual switch of the AI visibility check (paid, OpenRouter; lib/projects/collection.ts). Off by default.
+  aiVisibilityEnabled Boolean @default(false)
   ownerId           String
   createdAt         DateTime  @default(now())
   updatedAt         DateTime  @updatedAt

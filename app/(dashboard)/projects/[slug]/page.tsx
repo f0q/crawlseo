@@ -22,6 +22,8 @@ import { TasksSection } from "@/components/projects/tasks-section";
 import { BudgetSection } from "@/components/projects/budget-section";
 import { BillingSection } from "@/components/projects/billing-section";
 import { RankSettingsSection } from "@/components/projects/rank-settings-section";
+import { PaidCollectionSection } from "@/components/projects/paid-collection-section";
+import { getPaidCollection } from "@/lib/projects/paid-collection";
 import { StatusBadge } from "@/components/projects/ui";
 import { YandexProjectCards, yandexProjectSites } from "@/components/yandex/project-cards";
 import { OverviewSection } from "@/components/projects/overview-section";
@@ -139,7 +141,7 @@ export default async function ProjectPage({
     const { tasks } = await listTasks(actor, slug);
     body = <TasksSection slug={slug} tasks={tasks} canEdit={canEdit} />;
   } else if (tab === "money") {
-    const data = await getBudget(actor, slug, month);
+    const [data, paid] = await Promise.all([getBudget(actor, slug, month), getPaidCollection(actor, slug)]);
     // Agency fork UX step 2: the Money tab, the client's payment first, then the spending (the former Budget).
     body = (
       <div className="flex flex-col gap-5">
@@ -152,6 +154,7 @@ export default async function ProjectPage({
           pausedAt={project.paidPausedAt ? iso(project.paidPausedAt) : null}
           canEdit={canEdit}
         />
+        <PaidCollectionSection key={JSON.stringify(paid)} slug={slug} data={paid} canEdit={canEdit} />
         <BudgetSection key={`${data.month}-${data.currency}-${data.categories.join(",")}-${JSON.stringify(data.plan)}`} slug={slug} data={data} canEdit={canEdit} />
       </div>
     );

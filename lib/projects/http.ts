@@ -1,3 +1,4 @@
+import { getPaidCollection, setPaidCollection } from "./paid-collection";
 import { ApiError, intParam } from "@/lib/api-v1/params";
 import { projectFor, type Actor } from "./access";
 import { PROJECT_MESSAGES as M } from "./messages";
@@ -44,6 +45,7 @@ import { MAX_UPLOAD_BYTES } from "./uploads";
  * GET   /projects/_summary                this month (?month=) of every project: budgets and rank check usage
  * GET   /projects/{slug}/rank-settings    settings, engines, planned usage, the limit, recent runs
  * PATCH /projects/{slug}/rank-settings    enabled, source, frequency, engineIds, override
+ * GET   /projects/{slug}/paid-collection  manual switch and guard of each paid source (PATCH: dashboard only)
  * GET   /projects/{slug}/rank-usage       the usage log of a month, ?month=YYYY-MM
  * GET   /projects/{slug}/budget           ?month=: plan, entries, automatic costs, plan vs actual, history
  * PATCH /projects/{slug}/budget           currency, categories, plan { month, lines }
@@ -237,6 +239,13 @@ export async function routeProjects(
       if (id !== undefined) break;
       if (method === "GET") return json(await getRankSettings(actor, slug));
       if (method === "PATCH") return json(await updateRankSettings(actor, slug, await jsonBody(req)));
+      throw notAllowed();
+
+    // Agency fork: the manual switches of the paid sources and whether each may run now (lib/projects/paid-collection.ts).
+    case "paid-collection":
+      if (id !== undefined) break;
+      if (method === "GET") return json(await getPaidCollection(actor, slug));
+      if (method === "PATCH" && dashboard) return json(await setPaidCollection(actor, slug, await jsonBody(req)));
       throw notAllowed();
 
     case "rank-usage":

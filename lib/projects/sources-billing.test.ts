@@ -168,6 +168,39 @@ describe("billing fields through the API", () => {
   });
 });
 
+describe("paid collection switches (rank, AI visibility)", () => {
+  it("AI visibility is off by default; the dashboard turns it on, an access key only reads it, and payment and status still block", async () => {
+    expect(await paidCollectionGuard(db, "proj-a", new Date(), "ai")).toEqual({ allowed: false, reason: "off" });
+    const read = await api("GET", "/projects/quilltab/paid-collection", f.keyA);
+    expect(read.status).toBe(200);
+    expect(read.body).toMatchObject({ rank: { enabled: true, guard: { allowed: true } }, ai: { enabled: false, guard: { allowed: false, reason: "off" } } });
+
+    // An agent cannot turn paid work on.
+    const byKey = await api("PATCH", "/projects/quilltab/paid-collection", f.keyAWrite, { ai: true });
+    expect(byKey.status).toBe(405);
+    expect((await api("PATCH", "/projects/quilltab", f.keyAWrite, { aiVisibilityEnabled: true })).body.project?.aiVisibilityEnabled ?? false).toBe(false);
+
+    const on = await dash("PATCH", "/quilltab/paid-collection", { ai: true });
+    expect(on.status, on.body.error).toBe(200);
+    expect(on.body).toMatchObject({ ai: { enabled: true, guard: { allowed: true } } });
+
+    await db.project.update({ where: { id: "proj-a" }, data: { paidUntil: daysAgo(20) } });
+    expect(await paidCollectionGuard(db, "proj-a", new Date(), "ai")).toEqual({ allowed: false, reason: "billing" });
+    await db.project.update({ where: { id: "proj-a" }, data: { paidUntil: null, status: "paused" } });
+    expect(await paidCollectionGuard(db, "proj-a", new Date(), "ai")).toEqual({ allowed: false, reason: "status" });
+
+    // The rank switch is the rank settings' enabled.
+    await db.project.update({ where: { id: "proj-a" }, data: { status: "client" } });
+    const off = await dash("PATCH", "/quilltab/paid-collection", { rank: false });
+    expect(off.body).toMatchObject({ rank: { enabled: false, guard: { allowed: false, reason: "off" } }, ai: { enabled: true } });
+    expect((await db.projectRankSettings.findUnique({ where: { projectId: "proj-a" } }))!.enabled).toBe(false);
+    expect((await dash("PATCH", "/quilltab/paid-collection", { other: true })).status).toBe(400);
+    // Back as the other tests expect it.
+    await db.projectRankSettings.update({ where: { projectId: "proj-a" }, data: { enabled: true } });
+    await db.project.update({ where: { id: "proj-a" }, data: { aiVisibilityEnabled: false } });
+  });
+});
+
 describe("paid collection guard", () => {
   it("allows a client project that pays and has checks on", async () => {
     expect(await paidCollectionGuard(db, "proj-a")).toEqual({ allowed: true });
