@@ -83,7 +83,7 @@ export function AppShell({ email, name, image, version, update, children, sites,
   const dataThrough = activeSite?.dataThrough ?? null;
 
   const sidebarContent = (
-    <div className={cn("flex min-h-full flex-col gap-[22px] py-5", collapsed ? "px-2" : "px-3")}>
+    <div className={cn("flex min-h-full flex-col gap-[22px] py-5 short:gap-3 short:py-3", collapsed ? "px-2" : "px-3")}>
       <div className="flex flex-col gap-3.5">
         <div className={cn("flex items-center", collapsed ? "flex-col gap-3" : "justify-between")}>
           <Link
@@ -123,7 +123,7 @@ export function AppShell({ email, name, image, version, update, children, sites,
 
       {/* Agency fork: the bottom stays in view while the middle scrolls; the General block sits above the user. */}
       {/* Agency fork: a tinted footer panel (General + the user), separated from the client's navigation above. */}
-      <div className={cn("sticky bottom-0 mt-auto -mb-5 flex flex-col gap-3 border-t border-sidebar-border bg-border-soft pt-3 pb-5", collapsed ? "-mx-2 px-2" : "-mx-3 px-3")}>
+      <div className={cn("sticky bottom-0 mt-auto -mb-5 flex flex-col gap-3 border-t border-sidebar-border bg-border-soft pt-3 pb-5 short:-mb-3 short:gap-1.5 short:pt-2 short:pb-3", collapsed ? "-mx-2 px-2" : "-mx-3 px-3")}>
         {showCloudPromo && !collapsed && <CloudPromo />}
 
         {!collapsed && activeSite && (
@@ -131,7 +131,7 @@ export function AppShell({ email, name, image, version, update, children, sites,
             <span className="mono-label">
               {dataThrough ? `GSC data through ${formatDay(dataThrough)}` : "No GSC data yet"}
             </span>
-            <span className="mono-label">Search data lags 3 days</span>
+            <span className="mono-label short:hidden">Search data lags 3 days</span>
           </div>
         )}
 

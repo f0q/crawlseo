@@ -111,6 +111,20 @@ describe("the sidebar of a project", () => {
   });
 });
 
+describe("the task count next to Tasks", () => {
+  const tasksLink = (p: NavProject) => {
+    const m = contextNav({ pathname: `/projects/${p.slug}`, tab: null, nav: { groups: [{ name: null, projects: [p] }], unassigned: [] }, research: true });
+    return m.sections[0].kind === "project" ? m.sections[0].items.find((i) => i.label === "Tasks") : undefined;
+  };
+
+  it("shows the open tasks, amber when some are in review, and nothing when none are open or the count is unknown", () => {
+    expect(tasksLink({ ...one, tasks: { open: 7, review: 3 } })?.badge).toEqual({ text: "7", title: "7 open tasks, 3 to review", tone: "attention" });
+    expect(tasksLink({ ...one, tasks: { open: 1, review: 0 } })?.badge).toEqual({ text: "1", title: "1 open task", tone: "neutral" });
+    expect(tasksLink({ ...one, tasks: { open: 0, review: 0 } })?.badge).toBeUndefined();
+    expect(tasksLink(one)?.badge).toBeUndefined();
+  });
+});
+
 describe("the sidebar of a site", () => {
   it("is the project's sidebar with the site page active, the project one click away", () => {
     const m = build("/sites/s1/yandex");

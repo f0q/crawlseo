@@ -12,7 +12,7 @@ import { NAV_ICONS } from "./nav-icons";
 import { ProjectSwitcher } from "./project-switcher";
 import { WithProjectTab } from "./with-project-tab";
 
-const LABEL_CLASS = "px-2.5 pb-1.5 text-[12px] leading-4 text-muted-foreground";
+const LABEL_CLASS = "px-2.5 pb-1.5 text-[12px] leading-4 text-muted-foreground short:pb-0.5";
 
 /**
  * Agency fork: the top of the sidebar, in place of upstream's site switcher
@@ -29,13 +29,13 @@ function SidebarBody({ nav, research, collapsed, tab }: { nav: ProjectNav; resea
   const pathname = usePathname();
   const model = contextNav({ pathname, tab, nav, research });
   return (
-    <div className={cn("flex flex-col gap-[22px]", collapsed && "items-center")}>
+    <div className={cn("flex flex-col gap-[22px] short:gap-3", collapsed && "items-center")}>
       <div className={cn("flex flex-col gap-1.5", collapsed && "items-center")}>
         <NavItemLink item={model.projects} collapsed={collapsed} />
         <ProjectSwitcher nav={nav} collapsed={collapsed} tab={tab} />
       </div>
       {model.sections.length > 0 && (
-        <nav aria-label={M.nav.sections(model.title ?? M.nav.project)} className={cn("flex flex-col gap-[22px]", collapsed && "items-center gap-3")}>
+        <nav aria-label={M.nav.sections(model.title ?? M.nav.project)} className={cn("flex flex-col gap-[22px] short:gap-3", collapsed && "items-center gap-3")}>
           {model.sections.map((section) => (
             <Section key={sectionKey(section)} section={section} collapsed={collapsed} />
           ))}
@@ -79,7 +79,7 @@ function Section({ section, collapsed }: { section: NavSection; collapsed: boole
     return (
       <Link
         href={section.href}
-        className="-my-2.5 flex h-[34px] items-center justify-between gap-2 rounded-md px-2.5 font-data text-[13px] text-muted-foreground transition-colors hover:bg-bg-section hover:text-text-strong"
+        className="-my-2.5 flex h-[34px] items-center short:-my-1 short:h-7 justify-between gap-2 rounded-md px-2.5 font-data text-[13px] text-muted-foreground transition-colors hover:bg-bg-section hover:text-text-strong"
       >
         <span className="truncate">{section.domain}</span>
         <ChevronRight className="size-3.5 shrink-0" aria-hidden />

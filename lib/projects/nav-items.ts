@@ -27,7 +27,9 @@ export type NavIcon =
   | "add"
   | "link";
 
-export type NavLink = { href: string; label: string; icon: NavIcon; active: boolean };
+/** A count after the label: "attention" when something waits for the user (tasks in review). */
+export type NavBadge = { text: string; title: string; tone: "neutral" | "attention" };
+export type NavLink = { href: string; label: string; icon: NavIcon; active: boolean; badge?: NavBadge };
 
 /** A site page of the sidebar: `sub` is the path segment after /sites/{id} ("" for the site overview). */
 type SitePage = { sub: string; label: string };
@@ -75,8 +77,14 @@ export function sitePages(siteId: string, pathname: string, research: boolean): 
 }
 
 /** The six sections of a project; `active` is the open one when the project page is open. */
-export function projectSections(slug: string, openTab: ProjectTab | null): NavLink[] {
-  return PROJECT_TABS.map((t) => ({ href: projectTabHref(slug, t), label: M.tabs[t], icon: `tab-${t}` as const, active: t === openTab }));
+export function projectSections(slug: string, openTab: ProjectTab | null, tasks?: { open: number; review: number }): NavLink[] {
+  return PROJECT_TABS.map((t) => {
+    const link: NavLink = { href: projectTabHref(slug, t), label: M.tabs[t], icon: `tab-${t}` as const, active: t === openTab };
+    if (t === "tasks" && tasks && tasks.open > 0) {
+      link.badge = { text: String(tasks.open), title: M.nav.taskBadge(tasks.open, tasks.review), tone: tasks.review > 0 ? "attention" : "neutral" };
+    }
+    return link;
+  });
 }
 
 /** The General block at the bottom of the sidebar: the pages about every project, the same on every screen. */
@@ -179,7 +187,7 @@ export function contextNav({ pathname, tab, nav, research }: { pathname: string;
   }
 
   const openTab = siteId ? null : resolveProjectTab(tab ?? undefined).tab;
-  const sectionItems = projectSections(project.slug, openTab);
+  const sectionItems = projectSections(project.slug, openTab, project.tasks);
   const sections: NavSection[] = [{ kind: "project", title: M.nav.project, items: sectionItems }];
   const several = project.sites.length > 1;
   for (const s of project.sites) sections.push(siteSection(s, several));

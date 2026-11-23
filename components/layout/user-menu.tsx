@@ -1,9 +1,8 @@
 "use client";
 
 import { useTransition } from "react";
-import Link from "next/link";
 import { Menu } from "@base-ui/react/menu";
-import { ChevronsUpDown, Loader2, LogOut, Settings } from "lucide-react";
+import { ChevronsUpDown, Loader2, LogOut } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Avatar } from "@/components/account/avatar";
 import { signOutAction } from "@/app/(dashboard)/settings/actions";
@@ -13,8 +12,8 @@ const ITEM_CLASS =
   "flex h-9 w-full cursor-default items-center gap-2.5 rounded-sm px-2.5 text-[14px] text-text-strong outline-none select-none data-highlighted:bg-bg-section";
 
 /**
- * Sidebar footer: the signed-in user as a button that opens Settings and
- * Sign out, and the app version under it, with a link to a newer release
+ * Sidebar footer: the signed-in user as a button that opens Sign out
+ * (agency fork: Settings is in the General block above, not repeated here), and the app version under it, with a link to a newer release
  * when the update check found one. Collapsed, only the avatar shows.
  */
 export function UserMenu({
@@ -43,7 +42,7 @@ export function UserMenu({
           title={collapsed ? label : undefined}
           className={cn(
             "flex items-center rounded-md text-left transition-colors outline-none hover:bg-bg-section focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring data-popup-open:bg-bg-section",
-            collapsed ? "size-10 justify-center" : "h-11 w-full gap-2.5 px-2"
+            collapsed ? "size-10 justify-center short:size-8" : "h-11 w-full gap-2.5 px-2 short:h-9"
           )}
         >
           <Avatar name={name} email={email} image={image} className={collapsed ? "size-7" : undefined} />
@@ -64,10 +63,6 @@ export function UserMenu({
                   {email}
                 </p>
               )}
-              <Menu.LinkItem render={<Link href="/settings" />} closeOnClick className={ITEM_CLASS}>
-                <Settings className="size-4 text-muted-foreground" aria-hidden />
-                Settings
-              </Menu.LinkItem>
               <Menu.Item
                 className={ITEM_CLASS}
                 disabled={signingOut}

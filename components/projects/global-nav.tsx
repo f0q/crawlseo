@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
-import { generalNav, type NavLink } from "@/lib/projects/nav-items";
+import { generalNav, type NavBadge, type NavLink } from "@/lib/projects/nav-items";
 import { NAV_ICONS } from "./nav-icons";
 
 /**
@@ -19,7 +19,7 @@ export function GlobalNav({ collapsed = false }: { collapsed?: boolean }) {
       {collapsed ? (
         <span aria-hidden className="mb-1 h-px w-6 bg-border" />
       ) : (
-        <p className="px-2.5 pb-1.5 text-[12px] leading-4 text-muted-foreground">{M.nav.general}</p>
+        <p className="px-2.5 pb-1.5 text-[12px] leading-4 text-muted-foreground short:pb-0.5">{M.nav.general}</p>
       )}
       {generalNav(pathname).map((item) => (
         <NavItemLink
@@ -44,16 +44,22 @@ export function NavItemLink({ item, collapsed, withIcon = false, className }: { 
     return (
       <Link
         href={item.href}
-        title={item.label}
-        aria-label={item.label}
+        title={item.badge ? `${item.label}: ${item.badge.title}` : item.label}
+        aria-label={item.badge ? `${item.label}, ${item.badge.title}` : item.label}
         aria-current={item.active ? "page" : undefined}
         className={cn(
-          "flex size-10 shrink-0 items-center justify-center rounded-md transition-colors",
+          "relative flex size-10 shrink-0 items-center justify-center rounded-md transition-colors short:size-8",
           item.active ? "bg-border-soft text-text-strong" : "text-muted-foreground hover:bg-bg-section hover:text-text-strong",
           className
         )}
       >
         <Icon className="size-4" aria-hidden />
+        {item.badge && (
+          <span
+            aria-hidden
+            className={cn("absolute top-1 right-1 size-1.5 rounded-full", item.badge.tone === "attention" ? "bg-warning" : "bg-muted-foreground")}
+          />
+        )}
       </Link>
     );
   }
@@ -62,13 +68,30 @@ export function NavItemLink({ item, collapsed, withIcon = false, className }: { 
       href={item.href}
       aria-current={item.active ? "page" : undefined}
       className={cn(
-        "flex h-[34px] items-center gap-2 rounded-md px-2.5 text-[14px] transition-colors",
+        "flex h-[34px] items-center gap-2 rounded-md px-2.5 text-[14px] transition-colors short:h-7 short:text-[13px]",
         item.active ? "bg-border-soft font-medium text-text-strong" : "text-text hover:bg-bg-section hover:text-text-strong",
         className
       )}
     >
       {withIcon && <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
       <span className="truncate">{item.label}</span>
+      {item.badge && <NavBadgePill badge={item.badge} />}
     </Link>
+  );
+}
+
+/** The count after a sidebar label (open tasks); amber when some wait for review. The title says what it counts. */
+function NavBadgePill({ badge }: { badge: NavBadge }) {
+  return (
+    <span
+      title={badge.title}
+      className={cn(
+        "ml-auto shrink-0 rounded-full px-1.5 font-data text-[11px] leading-[18px] font-normal tabular-nums",
+        badge.tone === "attention" ? "bg-warning-bg text-warning ring-1 ring-warning/30" : "bg-bg-section text-muted-foreground"
+      )}
+    >
+      {badge.text}
+      <span className="sr-only">{` (${badge.title})`}</span>
+    </span>
   );
 }

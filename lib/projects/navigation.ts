@@ -18,6 +18,8 @@ export type NavProject = {
   sites: NavSite[];
   /** Editor or owner: may add a domain to the project. */
   canEdit: boolean;
+  /** Tasks not done, and those of them in review: the count next to Tasks in the sidebar. */
+  tasks?: { open: number; review: number };
 };
 export type NavGroup<T> = { name: string | null; projects: T[] };
 export type ProjectNav = {

@@ -19,6 +19,7 @@ export const PROJECT_MESSAGES = {
     projects: "Projects",
     allSites: "All sites",
     switcher: (label: string) => `Project: ${label}`,
+    taskBadge: (open: number, review: number) => `${open} open task${open === 1 ? "" : "s"}${review ? `, ${review} to review` : ""}`,
     unassigned: "Sites without a project",
     ungrouped: "Not in a group",
     groupLabel: (name: string) => name,
