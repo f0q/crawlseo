@@ -227,3 +227,15 @@ describe("the project overview", () => {
     expect(o.rank).toEqual({ enabled: true, source: "labrika", frequency: "weekly", lastStarted: daysAgo(3).toISOString() });
   });
 });
+
+describe("group names (agency fork)", () => {
+  it("joins an existing group whatever the case and spacing, and lists the groups", async () => {
+    const { createProject, updateProject, listGroups } = await import("./service");
+    await createProject(userA, { name: "Group One", slug: "group-one", group: "Centro Adelante" });
+    const p = await createProject(userA, { name: "Group Two", slug: "group-two", group: "  centro   ADELANTE " });
+    expect(p.project.group).toBe("Centro Adelante");
+    const q = await updateProject(userA, "group-two", { group: "Other  Group" });
+    expect(q.project.group).toBe("Other Group");
+    expect(await listGroups(userA)).toEqual(expect.arrayContaining(["Centro Adelante", "Other Group"]));
+  });
+});

@@ -6,7 +6,7 @@ import { ApiError } from "@/lib/api-v1/params";
 import { atLeast } from "@/lib/projects/access";
 import { sessionActor } from "@/lib/projects/dashboard";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
-import { getProject, listFiles, listJournal, listNotes, listTasks } from "@/lib/projects/service";
+import { getProject, listFiles, listGroups, listJournal, listNotes, listTasks } from "@/lib/projects/service";
 import { getBudget } from "@/lib/projects/budget";
 import { getRankSettings } from "@/lib/projects/rank";
 import { MONTH_PATTERN } from "@/lib/projects/rank-usage";
@@ -64,7 +64,7 @@ export default async function ProjectPage({
     body = (
       <div className="flex flex-col gap-5">
         <div className="panel p-5">
-          <ProjectForm key={iso(project.updatedAt)} project={project} canEdit={canEdit} />
+          <ProjectForm key={iso(project.updatedAt)} project={project} canEdit={canEdit} groups={await listGroups(actor)} />
         </div>
         <MembersSection slug={slug} members={members} me={actor.userId} isOwner={project.role === "owner"} />
         {project.role === "owner" && <DeleteProjectButton slug={slug} />}

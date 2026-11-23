@@ -46,7 +46,7 @@ const EMPTY: Passport = {
  * viewer sees the same fields, read-only. Access notes are checked for
  * secrets as you type, with the server's rules.
  */
-export function ProjectForm({ project, canEdit = true }: { project?: Passport; canEdit?: boolean }) {
+export function ProjectForm({ project, canEdit = true, groups = [] }: { project?: Passport; canEdit?: boolean; groups?: string[] }) {
   const router = useRouter();
   const creating = !project;
   const [v, setV] = useState<Passport>(project ?? EMPTY);
@@ -121,7 +121,12 @@ export function ProjectForm({ project, canEdit = true }: { project?: Passport; c
           </select>
         </Field>
         <Field label={T.group} hint={T.groupHint}>
-          <input className={inputClass} value={v.group ?? ""} onChange={set("group")} maxLength={80} disabled={disabled} />
+          <input className={inputClass} value={v.group ?? ""} onChange={set("group")} maxLength={80} disabled={disabled} list="project-groups" autoComplete="off" />
+          <datalist id="project-groups">
+            {groups.map((g) => (
+              <option key={g} value={g} />
+            ))}
+          </datalist>
         </Field>
         <Field label={T.testUrl} hint={T.testUrlHint}>
           <input className={inputClass} type="url" value={v.testUrl ?? ""} onChange={set("testUrl")} placeholder="https://" disabled={disabled} />

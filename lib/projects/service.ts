@@ -97,6 +97,27 @@ export type ProjectSummary = Passport & {
  * journal entry. updatedSince keeps the projects where anything (passport,
  * notes, files, journal, tasks) changed since then.
  */
+/** Agency fork: the group names of the projects the actor sees, for the group picker. */
+export async function listGroups(actor: Actor): Promise<string[]> {
+  const rows = await db.project.findMany({
+    where: { AND: [visibleProjects(actor), { group: { not: null } }] },
+    select: { group: true },
+    distinct: ["group"],
+  });
+  return rows.map((r) => r.group!).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
+}
+
+const groupKey = (g: string) => g.trim().replace(/\s+/g, " ").toLocaleLowerCase();
+
+/** Agency fork: "centro  adelante " joins the existing "Centro Adelante" instead of starting a second group. */
+async function canonicalGroup(actor: Actor, group: string | null | undefined): Promise<string | null | undefined> {
+  if (typeof group !== "string") return group;
+  const tidy = group.trim().replace(/\s+/g, " ");
+  if (!tidy) return null;
+  const same = (await listGroups(actor)).find((g) => groupKey(g) === groupKey(tidy));
+  return same ?? tidy;
+}
+
 export async function listProjects(actor: Actor, opts: { updatedSince?: Date } = {}): Promise<ProjectSummary[]> {
   const t = opts.updatedSince;
   const changed: Prisma.ProjectWhereInput = t
@@ -201,7 +222,7 @@ export async function createProject(actor: Actor, body: unknown) {
   if (await db.project.findUnique({ where: { slug }, select: { id: true } })) throw new ApiError(409, M.errors.slugTaken);
   const planned = await planSites(actor, input.domains, null);
 
-  const passport = { ...input, domains: undefined, slug: undefined };
+  const passport = { ...input, domains: undefined, slug: undefined, group: await canonicalGroup(actor, input.group) };
   let project;
   try {
     project = await db.project.create({
@@ -221,6 +242,7 @@ export async function updateProject(actor: Actor, slug: string, body: unknown) {
   const input = parse(updateProjectSchema, body);
   const data: Record<string, unknown> = Object.fromEntries(Object.entries(input).filter(([, v]) => v !== undefined));
   for (const k of ["paidUntil", "contractEnd"] as const) if (typeof data[k] === "string") data[k] = toDay(data[k] as string);
+  if ("group" in data) data.group = await canonicalGroup(actor, data.group as string | null);
   if (Object.keys(data).length) await db.project.update({ where: { id: ref.id }, data });
   // Agency fork: a moved payment date or "never pause" pauses or resumes paid collection at once, not on the next pass.
   if (["paidUntil", "contractEnd", "billingNeverPause"].some((k) => k in data)) await applyBillingRule(db, new Date(), { projectId: ref.id });

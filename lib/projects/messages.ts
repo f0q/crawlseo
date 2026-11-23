@@ -58,7 +58,7 @@ export const PROJECT_MESSAGES = {
     slugHint: "Latin letters, digits and -. Used in links and by the agent sync. Made from the name when left empty.",
     status: "Status",
     group: "Group",
-    groupHint: "Optional. Projects with the same group are listed together, e.g. one client with several projects.",
+    groupHint: "Optional. Pick an existing group or type a new name; case and extra spaces are ignored when matching. Projects with the same group are listed together.",
     testUrl: "Test site",
     testUrlHint: "The test copy where changes are shown before production.",
     geo: "Geo",
