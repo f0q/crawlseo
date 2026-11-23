@@ -3,7 +3,7 @@ import { auth } from "@/lib/auth";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { PageHeader } from "@/components/ui/page-header";
 import { ProjectForm } from "@/components/projects/project-form";
-import { listGroups } from "@/lib/projects/service";
+import { listGroupSummaries } from "@/lib/projects/groups";
 import { sessionActor } from "@/lib/projects/dashboard";
 
 /** Agency fork: a new client project, its passport and its domains. */
@@ -14,7 +14,7 @@ export default async function NewProjectPage() {
     <div>
       <PageHeader title={M.form.createTitle} description={M.form.createDescription} />
       <div className="panel p-5">
-        <ProjectForm groups={await listGroups(actor)} />
+        <ProjectForm groups={await listGroupSummaries(actor)} />
       </div>
     </div>
   );

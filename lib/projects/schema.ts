@@ -35,7 +35,7 @@ export const MAX_DOMAINS = 20;
 /** 2 to 48 of a-z, 0-9 and "-", not starting or ending with "-". */
 export const SLUG_PATTERN = /^[a-z0-9][a-z0-9-]{0,46}[a-z0-9]$/;
 /** Words the projects pages use as path segments. */
-const RESERVED_SLUGS = new Set(["new", "api", "edit", "sources"]);
+const RESERVED_SLUGS = new Set(["new", "api", "edit", "sources", "groups"]);
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 

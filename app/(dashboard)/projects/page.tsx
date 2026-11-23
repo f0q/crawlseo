@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, AlertTriangle, Plus } from "lucide-react";
+import { Activity, AlertTriangle, Layers, Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { formatDay } from "@/lib/format";
 import { sessionActor } from "@/lib/projects/dashboard";
@@ -15,6 +15,10 @@ import { buttonVariants } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PageHeader } from "@/components/ui/page-header";
 import { StatusBadge } from "@/components/projects/ui";
+import { GroupTitle } from "@/components/projects/group-actions";
+import { atLeast } from "@/lib/projects/access";
+import { listGroupSummaries } from "@/lib/projects/groups";
+import { sameGroup } from "@/lib/projects/group-names";
 
 const T = M.list;
 const H = M.home;
@@ -28,7 +32,9 @@ const H = M.home;
 export default async function ProjectsPage() {
   const session = await auth();
   const actor = sessionActor(session?.user);
-  const [home, nav] = actor ? await Promise.all([projectsHome(actor), loadProjectNav(actor)]) : [null, null];
+  const [home, nav, groupSummaries] = actor
+    ? await Promise.all([projectsHome(actor), loadProjectNav(actor), listGroupSummaries(actor)])
+    : [null, null, []];
   const timeZone = await getDisplayTimeZone();
   // Sites of the user that are in none of their projects: listed below, never hidden.
   const unassigned = nav?.unassigned ?? [];
@@ -38,6 +44,10 @@ export default async function ProjectsPage() {
       <Link href="/projects/sources" className={buttonVariants({ variant: "outline" })}>
         <Activity aria-hidden />
         {H.sourcesLink}
+      </Link>
+      <Link href="/projects/groups" className={buttonVariants({ variant: "outline" })}>
+        <Layers aria-hidden />
+        {H.groupsLink}
       </Link>
       <Link href="/projects/new" className={buttonVariants()}>
         <Plus aria-hidden />
@@ -89,6 +99,24 @@ export default async function ProjectsPage() {
               </summary>
               {table}
             </details>
+          );
+        }
+        // Agency fork: a named group's heading has Rename and Ungroup for its owners and editors.
+        if (g.kind === "group" && g.name) {
+          // Prospects, paused and attention rows of the group are listed elsewhere; the actions cover the whole group.
+          const summary = groupSummaries.find((x) => sameGroup(x.name, g.name));
+          return (
+            <section key={g.key} aria-label={title} className="mb-6">
+              <GroupTitle
+                name={g.name}
+                shown={g.rows.length}
+                count={summary?.count ?? g.rows.length}
+                editable={summary?.editable ?? g.rows.filter((r) => atLeast(r.project.role, "editor")).length}
+                variant="menu"
+                className="mb-3"
+              />
+              {table}
+            </section>
           );
         }
         return (

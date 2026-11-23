@@ -28,6 +28,7 @@ import { createTestDb, type TestDb } from "@/lib/testing/pglite";
 import ProjectsPage from "./page";
 import ProjectPage from "./[slug]/page";
 import SourcesPage from "./sources/page";
+import GroupsPage from "./groups/page";
 
 let t: TestDb;
 
@@ -127,5 +128,36 @@ describe("projects pages", () => {
     expect(await page("money")).not.toContain("Save plan");
     expect(await page("money")).toContain("Editors and owners change the payment dates.");
     await expect(page(undefined, "secret-b")).rejects.toThrow("not found");
+  });
+
+  // Agency fork: project groups.
+  it("the Groups page lists the groups with actions and every editable project with a group picker", async () => {
+    holder.user = { id: "user-a", email: "a@quilltab.app" };
+    await t.db.project.create({ data: { id: "proj-g2", slug: "grouped-two", name: "Grouped two", group: "Centro Adelante", ownerId: "user-a", members: { create: { userId: "user-a", role: "owner" } } } });
+    const html = renderToString(await GroupsPage());
+    expect(html).toContain("Groups");
+    expect(html).toContain('aria-label="Rename Centro Adelante"');
+    expect(html).toContain('aria-label="Ungroup Centro Adelante"');
+    expect(html).toContain("New group");
+    expect(html).toMatch(/id="group-of-quilltab"[\s\S]*aria-labelledby="group-of-quilltab /);
+    expect(html).toMatch(/id="group-of-grouped-two"[\s\S]*aria-labelledby="group-of-grouped-two /);
+
+    // The projects home: a Groups button and the group heading's menu for its owner.
+    const home = renderToString(await ProjectsPage());
+    expect(home).toContain('href="/projects/groups"');
+    expect(home).toContain('aria-label="Actions for group Centro Adelante"');
+
+    // The About tab: the group picker saves on its own, no text input with a datalist.
+    const about = await page("about", "grouped-two");
+    expect(about).toContain('id="project-group-label"');
+    expect(about).toContain('aria-haspopup="menu"');
+    expect(about).not.toContain("<datalist");
+
+    // A viewer sees no actions and no projects to change.
+    holder.user = { id: "user-v", email: "v@quilltab.app" };
+    const viewer = renderToString(await GroupsPage());
+    expect(viewer).toContain("You are not an owner or editor of any project.");
+    expect(viewer).not.toContain("Rename");
+    await t.db.project.delete({ where: { id: "proj-g2" } });
   });
 });

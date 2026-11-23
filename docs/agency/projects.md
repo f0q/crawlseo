@@ -95,6 +95,10 @@ The same routes (`lib/projects/http.ts`) serve two callers:
 | GET | `/projects/{slug}/tasks` | `?updatedSince=&status=` |
 | POST | `/projects/{slug}/tasks` | upsert: by `id`, else by `externalKey`, else a new task |
 | PATCH | `/projects/{slug}/tasks/{id}` | any task field; `due: null` clears it |
+| GET | `/projects/_groups` | the groups: `name`, `count` (projects you see), `editable` (of those, where you are owner or editor). See [Groups](#groups) |
+| POST | `/projects/_groups/rename` | `from`, `to`: renames the group on your editable projects; into an existing group merges (`merged: true`). Answers `group`, `renamed`, `skipped` |
+| POST | `/projects/_groups/ungroup` | `name`: your editable projects of the group lose it. Answers `ungrouped`, `skipped` |
+| POST | `/projects/_groups/assign` | `name`, `slugs[]`: moves projects into a group, new or existing; all or nothing (each needs owner or editor). Answers `group`, `moved` |
 
 Dashboard only: `POST /api/projects/{slug}/members` (`email`, `role`),
 `PATCH|DELETE /api/projects/{slug}/members/{userId}`,
@@ -119,6 +123,40 @@ curl -s -X POST -H "Authorization: Bearer $CRAWLSEO_KEY" \
   -F file=@brief.pdf -F category=materials \
   https://seo.example.com/api/v1/projects/acme/files
 ```
+
+## Groups
+
+`Project.group` is free text (at most 80 characters); there is no table of
+groups and no migration for them. A group is the projects with the same name,
+matched ignoring case and spacing: "centro  adelante " joins "Centro
+Adelante", which keeps its spelling (`lib/projects/group-names.ts`, shared by
+the server and the picker). A group with no project does not exist.
+
+- **Group picker** (`components/projects/group-select.tsx`, a base-ui menu):
+  No group, the existing groups with their project counts, and "New group…",
+  which turns into a text input (Enter or the check confirms, Escape or the
+  cross cancels; Enter never submits the form around it). In the About tab it
+  saves at once (`PATCH /projects/{slug}` with `group`) and shows Saving… /
+  Saved / the error, apart from the passport's Save button; the passport form
+  no longer sends the group. In New project it goes with the form.
+- **Groups page** `/projects/groups` (the slug `groups` is reserved like
+  `sources`): the groups with Rename (inline) and Ungroup (with a
+  confirmation), New group (a name and the projects to move into it: an empty
+  group cannot exist), and every project you can edit, by group, each with a
+  picker that saves at once.
+- **On `/projects`**: a Groups button in the header, and a "⋯" menu next to
+  each named group heading (Rename, Ungroup) for owners and editors of a
+  project in it. The actions cover the whole group, also its prospects and
+  paused projects listed further down.
+- After any change the page refreshes, so the switcher and the lists follow.
+
+Rename, ungroup and assign (`lib/projects/groups.ts`) change only the
+projects where you are owner or editor (or an instance admin); a viewer's
+projects and other users' keep their group (`skipped` counts the ones you see
+but cannot change). 404 when you see no project in the group, 403 when you
+can change none of them. Renaming into another group's name merges into it;
+a change of case or spacing only keeps the new spelling. The routes are the
+same in `/api/v1` (writes need a write-scoped key).
 
 ## MCP
 

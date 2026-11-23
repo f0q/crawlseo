@@ -6,7 +6,8 @@ import { ApiError } from "@/lib/api-v1/params";
 import { atLeast } from "@/lib/projects/access";
 import { sessionActor } from "@/lib/projects/dashboard";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
-import { getProject, listFiles, listGroups, listJournal, listNotes, listTasks } from "@/lib/projects/service";
+import { getProject, listFiles, listJournal, listNotes, listTasks } from "@/lib/projects/service";
+import { listGroupSummaries } from "@/lib/projects/groups";
 import { getBudget } from "@/lib/projects/budget";
 import { getRankSettings } from "@/lib/projects/rank";
 import { MONTH_PATTERN } from "@/lib/projects/rank-usage";
@@ -32,6 +33,10 @@ import { PROJECT_TABS, projectTabHref, resolveProjectTab } from "@/lib/projects/
 import { getDisplayTimeZone } from "@/lib/timezone-server";
 
 const iso = (d: Date) => d.toISOString();
+
+/** What the passport form edits (the group aside): a new key resets the form to the saved values. */
+const passportFormKey = (p: { name: string; status: string; testUrl: string | null; geo: string | null; language: string | null; searchEngines: string[]; cms: string | null; hosting: string | null; contacts: string | null; accessNotes: string | null }) =>
+  JSON.stringify([p.name, p.status, p.testUrl, p.geo, p.language, p.searchEngines, p.cms, p.hosting, p.contacts, p.accessNotes]);
 
 /**
  * Agency fork: one client project, in six tabs (UX step 3): overview (the default), tasks, journal,
@@ -71,12 +76,13 @@ export default async function ProjectPage({
   if (tab === "overview") {
     body = <OverviewSection slug={slug} data={await projectOverview(actor, slug)} timeZone={timeZone} />;
   } else if (tab === "about") {
-    const [{ notes }, { files }, groups] = await Promise.all([listNotes(actor, slug), listFiles(actor, slug), listGroups(actor)]);
+    const [{ notes }, { files }, groups] = await Promise.all([listNotes(actor, slug), listFiles(actor, slug), listGroupSummaries(actor)]);
     body = (
       <div className="flex flex-col gap-5">
         <div id="passport" className="panel scroll-mt-20 p-5">
           <h2 className="mb-4 text-[17px] leading-6 font-medium text-text-strong">{M.detail.passportTitle}</h2>
-          <ProjectForm key={iso(project.updatedAt)} project={project} canEdit={canEdit} groups={groups} />
+          {/* Keyed by the form's own fields: the group saves on its own and must not reset unsaved edits. */}
+          <ProjectForm key={passportFormKey(project)} project={project} canEdit={canEdit} groups={groups} />
         </div>
         <div id="brief" className="flex scroll-mt-20 flex-col gap-5">
           <NotesSection slug={slug} notes={notes.map((n) => ({ ...n, updatedAt: iso(n.updatedAt) }))} canEdit={canEdit} />

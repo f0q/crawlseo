@@ -21,8 +21,9 @@ every string in `lib/projects/messages.ts`.
 - Under the switcher, inside a project: its sites (only the user's own, the
   only ones they can open). One site is a plain link, several are a menu that
   keeps the open site sub-page, no site shows nothing.
-- Items: Projects and Data sources (`/projects/sources`, see
-  [sources-and-billing.md](sources-and-billing.md)) on every page. On a site: "Back to {project}" first, the site
+- Items: Projects, Data sources (`/projects/sources`, see
+  [sources-and-billing.md](sources-and-billing.md)) and Groups
+  (`/projects/groups`, see [projects.md](projects.md#groups)) on every page. On a site: "Back to {project}" first, the site
   group named after the domain, Research only when DataForSEO is connected
   (the pages still open by link), Site settings. AI & MCP is left out of the
   menu; `/sites/{id}/mcp` still opens and Settings > MCP has the same.
@@ -62,10 +63,14 @@ with the one remaining link to `/sites`.
 `Project.group`: optional free text, at most 80 characters (migration
 `20261125000000_agency_project_group`, one nullable column). Projects with the
 same group are listed together, e.g. "Centro Adelante" for one client's four
-projects. Set it in the passport form, with `POST` or `PATCH
-/api/v1/projects/{slug}` (`"group": "..."`; `""` or `null` clears it), or with
-the MCP tools `create_project` and `update_project`. `GET /projects` and
-`GET /projects/{slug}` return it with the passport.
+projects. Set it with the group picker (About tab, New project, the Groups
+page), with `POST` or `PATCH /api/v1/projects/{slug}` (`"group": "..."`; `""`
+or `null` clears it), or with the MCP tools `create_project` and
+`update_project`. `GET /projects` and `GET /projects/{slug}` return it with
+the passport. Renaming and ungrouping a whole group: see
+[projects.md](projects.md#groups). On `/projects` each named group's heading
+has a "⋯" menu (Rename, Ungroup) for its owners and editors; the header has a
+Groups button next to Data sources.
 
 ## Project page
 

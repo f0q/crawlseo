@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
 import { PROJECT_STATUSES } from "@/lib/projects/schema";
 import { findSecret } from "@/lib/projects/secrets";
+import type { GroupOption } from "@/lib/projects/group-names";
+import { GroupSelect, ProjectGroupPicker } from "./group-select";
 import { ErrorLine, Field, inputClass, projectUrl, send, textareaClass, useAction } from "./ui";
 
 const T = M.form;
@@ -42,11 +44,12 @@ const EMPTY: Passport = {
 };
 
 /**
- * The passport form: creates a project (with its domains) or edits one. A
+ * The passport form: creates a project (with its domains) or edits one. The
+ * group of an existing project is saved on its own, as soon as it is picked. A
  * viewer sees the same fields, read-only. Access notes are checked for
  * secrets as you type, with the server's rules.
  */
-export function ProjectForm({ project, canEdit = true, groups = [] }: { project?: Passport; canEdit?: boolean; groups?: string[] }) {
+export function ProjectForm({ project, canEdit = true, groups = [] }: { project?: Passport; canEdit?: boolean; groups?: GroupOption[] }) {
   const router = useRouter();
   const creating = !project;
   const [v, setV] = useState<Passport>(project ?? EMPTY);
@@ -67,7 +70,6 @@ export function ProjectForm({ project, canEdit = true, groups = [] }: { project?
     const body = {
       name: v.name,
       status: v.status,
-      group: v.group ?? null,
       testUrl: v.testUrl,
       geo: v.geo,
       language: v.language,
@@ -84,6 +86,7 @@ export function ProjectForm({ project, canEdit = true, groups = [] }: { project?
           send<{ project: { slug: string } }>("/api/projects", "POST", {
             ...body,
             ...(v.slug.trim() && { slug: v.slug.trim() }),
+            group: v.group ?? null,
             domains: domains.split(/[\s,]+/).filter(Boolean),
           }),
         { refresh: false }
@@ -120,14 +123,18 @@ export function ProjectForm({ project, canEdit = true, groups = [] }: { project?
             ))}
           </select>
         </Field>
-        <Field label={T.group} hint={T.groupHint}>
-          <input className={inputClass} value={v.group ?? ""} onChange={set("group")} maxLength={80} disabled={disabled} list="project-groups" autoComplete="off" />
-          <datalist id="project-groups">
-            {groups.map((g) => (
-              <option key={g} value={g} />
-            ))}
-          </datalist>
-        </Field>
+        {/* Agency fork: the group picker. Creating, it goes with the form; editing, it saves on its own (ProjectGroupPicker). */}
+        <div className="flex flex-col gap-1">
+          <span id="project-group-label" className="mono-label text-[11px] text-muted-foreground">
+            {T.group}
+          </span>
+          {creating ? (
+            <GroupSelect value={v.group ?? null} groups={groups} onChange={(group) => setV((prev) => ({ ...prev, group }))} disabled={disabled} labelledBy="project-group-label" />
+          ) : (
+            <ProjectGroupPicker slug={project.slug} value={project.group ?? null} groups={groups} canEdit={canEdit} labelledBy="project-group-label" />
+          )}
+          {creating && <span className="text-[12px] leading-4 text-muted-foreground">{T.groupHint}</span>}
+        </div>
         <Field label={T.testUrl} hint={T.testUrlHint}>
           <input className={inputClass} type="url" value={v.testUrl ?? ""} onChange={set("testUrl")} placeholder="https://" disabled={disabled} />
         </Field>

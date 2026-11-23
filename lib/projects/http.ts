@@ -6,6 +6,7 @@ import * as budget from "./budget";
 import { rankUsageSummary, getRankSettings, listRankRuns, startRankCheckNow, updateProviderPlan, updateRankSettings } from "./rank";
 import { monthOf, MONTH_PATTERN } from "./rank-usage";
 import * as svc from "./service";
+import * as groups from "./groups";
 import { sourcesMatrix } from "./sources";
 import { visibleProjects } from "./access";
 import { db } from "@/lib/db";
@@ -36,6 +37,10 @@ import { MAX_UPLOAD_BYTES } from "./uploads";
  * POST  /projects/{slug}/tasks            upsert by id, or by externalKey
  * PATCH /projects/{slug}/tasks/{id}
  * GET   /projects/_sources                the data sources of every project (?slug= for one): state, last sync, error, paid
+ * GET   /projects/_groups                 the groups: name, count, editable (./groups.ts)
+ * POST  /projects/_groups/rename          { from, to }; into an existing group merges
+ * POST  /projects/_groups/ungroup         { name }
+ * POST  /projects/_groups/assign          { name, slugs[] }
  * GET   /projects/_summary                this month (?month=) of every project: budgets and rank check usage
  * GET   /projects/{slug}/rank-settings    settings, engines, planned usage, the limit, recent runs
  * PATCH /projects/{slug}/rank-settings    enabled, source, frequency, engineIds, override
@@ -146,6 +151,17 @@ export async function routeProjects(
   if (slug === "_sources" && resource === undefined) {
     if (method !== "GET") throw notAllowed();
     return json(await sourcesMatrix(actor, { slug: params.get("slug") ?? undefined }));
+  }
+  // Agency fork: project groups (./groups.ts). Rename, ungroup and assign change only the projects the actor edits.
+  if (slug === "_groups") {
+    if (resource === undefined) {
+      if (method === "GET") return json({ groups: await groups.listGroupSummaries(actor) });
+      throw notAllowed();
+    }
+    const action = resource === "rename" ? groups.renameGroup : resource === "ungroup" ? groups.ungroupGroup : resource === "assign" ? groups.assignGroup : null;
+    if (!action || id !== undefined) throw new ApiError(404, "Not found");
+    if (method !== "POST") throw notAllowed();
+    return json(await action(actor, await jsonBody(req)));
   }
   if (slug === "_rank-plans" && resource === undefined) {
     if (method === "PATCH" && dashboard) return json({ plan: await updateProviderPlan(actor, await jsonBody(req)) });

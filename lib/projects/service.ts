@@ -6,6 +6,7 @@ import { canAddSite, siteCreated } from "@/lib/site-policy";
 import { isPublicDomainName, siteDomainFromProperty } from "@/lib/site-domain";
 import { projectFor, rolesOf, visibleProjects, type Actor } from "./access";
 import { applyBillingRule } from "./billing";
+import { resolveGroupName } from "./group-names";
 import { PROJECT_MESSAGES as M } from "./messages";
 import {
   addSitesSchema,
@@ -107,15 +108,10 @@ export async function listGroups(actor: Actor): Promise<string[]> {
   return rows.map((r) => r.group!).sort((a, b) => a.localeCompare(b, undefined, { sensitivity: "base" }));
 }
 
-const groupKey = (g: string) => g.trim().replace(/\s+/g, " ").toLocaleLowerCase();
-
 /** Agency fork: "centro  adelante " joins the existing "Centro Adelante" instead of starting a second group. */
-async function canonicalGroup(actor: Actor, group: string | null | undefined): Promise<string | null | undefined> {
+export async function canonicalGroup(actor: Actor, group: string | null | undefined): Promise<string | null | undefined> {
   if (typeof group !== "string") return group;
-  const tidy = group.trim().replace(/\s+/g, " ");
-  if (!tidy) return null;
-  const same = (await listGroups(actor)).find((g) => groupKey(g) === groupKey(tidy));
-  return same ?? tidy;
+  return resolveGroupName(group, await listGroups(actor));
 }
 
 export async function listProjects(actor: Actor, opts: { updatedSince?: Date } = {}): Promise<ProjectSummary[]> {
