@@ -8,7 +8,7 @@ import { Check, ChevronsUpDown, FolderKanban, Globe, Plus } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { sitePathFor } from "@/lib/site-routes";
 import { PROJECT_MESSAGES as M } from "@/lib/projects/messages";
-import { switcherView, type ProjectNav } from "@/lib/projects/navigation";
+import { switchTarget, switcherView, type ProjectNav } from "@/lib/projects/navigation";
 
 const T = M.nav;
 
@@ -26,7 +26,8 @@ const GROUP_LABEL_CLASS = "px-2.5 pt-2 pb-1 text-[11px] leading-4 text-muted-for
  * Agency fork: the switcher under Projects at the top of the sidebar. One
  * purpose: change the client. It names the open project (its group in a small
  * line above), "Sites without a project" on such a site, and "Go to project..."
- * elsewhere. The menu: the projects by group, the user's sites that are in no
+ * elsewhere. Choosing a project keeps the open screen (switchTarget in
+ * lib/projects/navigation.ts). The menu: the projects by group, the user's sites that are in no
  * project (so they stay reachable) and New project. The open project's sites
  * are sections of the sidebar (project-sidebar.tsx), not a picker here.
  * `variant="header"` is the borderless trigger of the mobile header.
@@ -48,7 +49,6 @@ export function ProjectSwitcher({
   const label = view.project?.name ?? (view.unassignedSite ? T.unassigned : T.goToProject);
   const group = view.project?.group?.trim() || null;
   const header = variant === "header";
-  void tab;
 
   return (
     <Menu.Root>
@@ -96,7 +96,7 @@ export function ProjectSwitcher({
                   return (
                     <Menu.LinkItem
                       key={p.slug}
-                      render={<Link href={`/projects/${p.slug}`} />}
+                      render={<Link href={switchTarget({ pathname, tab, nav, target: p })} />}
                       closeOnClick
                       aria-current={current ? "page" : undefined}
                       className={ITEM_CLASS}

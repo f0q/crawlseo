@@ -1,4 +1,6 @@
+import { sitePathFor } from "@/lib/site-routes";
 import { PROJECT_STATUSES } from "./schema";
+import { projectTabHref, resolveProjectTab } from "./tabs";
 
 /*
  * The project switcher of the sidebar (agency fork). A project is the only
@@ -77,4 +79,21 @@ function decodeURIComponentSafe(s: string): string {
   } catch {
     return s;
   }
+}
+
+/**
+ * Where choosing another project in the switcher leads: the same screen of
+ * that project. From a section of a project page, the same section (`?tab=`,
+ * a former key as its new tab); from a site page, the same page of the
+ * project's first site (its overview when the page is not a known one), or
+ * the project's Overview when it has no site of the user's; from anywhere
+ * else, the project's Overview.
+ */
+export function switchTarget({ pathname, tab, nav, target }: { pathname: string; tab: string | null; nav: ProjectNav; target: NavProject }): string {
+  if (/^\/sites\/[^/]+/.test(pathname)) {
+    const first = target.sites[0];
+    return first ? sitePathFor(pathname, first.id) : projectTabHref(target.slug, "overview");
+  }
+  const fromProject = switcherView(pathname, nav).project !== null;
+  return projectTabHref(target.slug, fromProject ? resolveProjectTab(tab ?? undefined).tab : "overview");
 }

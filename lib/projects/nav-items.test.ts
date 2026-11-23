@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { SITE_SUB_PAGES } from "@/lib/site-routes";
 import { contextNav, generalNav, SITE_HIDDEN_PAGES, SITE_PAGES, SITE_RESEARCH_PAGES, SITE_SETTINGS_PAGE, type ContextNav, type NavLink, type SiteSection } from "./nav-items";
-import type { NavProject, ProjectNav } from "./navigation";
+import { switchTarget, type NavProject, type ProjectNav } from "./navigation";
 
 // Navigation model of 2026-11-23 (agency fork): what the sidebar and the mobile strip show on each screen.
 
@@ -153,5 +153,33 @@ describe("site pages against upstream's routes", () => {
     const hidden = new Set<string>(SITE_HIDDEN_PAGES);
     expect(SITE_SUB_PAGES.filter((sub) => !listed.has(sub) && !hidden.has(sub))).toEqual([]);
     expect([...listed, ...hidden].filter((sub) => !(SITE_SUB_PAGES as readonly string[]).includes(sub))).toEqual([]);
+  });
+});
+
+describe("switching project keeps the screen", () => {
+  const to = (pathname: string, target: NavProject, tab: string | null = null) => switchTarget({ pathname, tab, nav: NAV, target });
+
+  it("from a project section: the same section of the other project", () => {
+    expect(to("/projects/one", many, "tasks")).toBe("/projects/many?tab=tasks");
+    expect(to("/projects/one", many)).toBe("/projects/many");
+    expect(to("/projects/one", many, "budget")).toBe("/projects/many?tab=money");
+    expect(to("/projects/one", many, "nope")).toBe("/projects/many");
+  });
+
+  it("from a site page: the same page of the other project's first site, else its Overview", () => {
+    expect(to("/sites/s1/yandex", many)).toBe("/sites/m1/yandex");
+    expect(to("/sites/m2/positions", one)).toBe("/sites/s1/positions");
+    expect(to("/sites/s1", many)).toBe("/sites/m1");
+    // A page that is not a known site page (or a deeper one) opens the site overview.
+    expect(to("/sites/s1/unknown", many)).toBe("/sites/m1");
+    expect(to("/sites/s1/yandex", empty)).toBe("/projects/empty");
+    // A site without a project too.
+    expect(to("/sites/u1/keywords", one)).toBe("/sites/s1/keywords");
+  });
+
+  it("from a general page: the project's Overview", () => {
+    for (const path of ["/projects", "/projects/new", "/projects/sources", "/projects/groups", "/settings", "/sites"]) {
+      expect(to(path, one, "tasks")).toBe("/projects/one");
+    }
   });
 });
