@@ -12,8 +12,26 @@ import { routeProjects } from "./http";
 
 export const PROJECTS_ROOT = "projects";
 
-/** The methods /api/v1/projects takes; the dashboard routes also take DELETE. */
-export const PROJECT_API_METHODS = ["GET", "POST", "PATCH"] as const;
+/** The methods /api/v1/projects takes. DELETE: only a site out of a project; every other DELETE is the dashboard's. */
+export const PROJECT_API_METHODS = ["GET", "POST", "PATCH", "DELETE"] as const;
+
+/** What a key of the "billing" scope may change: the payment dates and the never-pause switch. */
+export const BILLING_FIELDS = ["paidUntil", "contractEnd", "billingNeverPause"] as const;
+
+/**
+ * A "billing" key (a CRM): GET /projects and /projects/{slug}, and PATCH
+ * /projects/{slug} with only BILLING_FIELDS in the body. Everything else is refused.
+ */
+export async function billingKeyAllows(req: Request, segments: string[]): Promise<boolean> {
+  const [root, slug, ...rest] = segments;
+  if (root !== PROJECTS_ROOT || rest.length > 0 || (slug ?? "").startsWith("_")) return false;
+  if (req.method === "GET") return true;
+  if (req.method !== "PATCH" || !slug) return false;
+  const body: unknown = await req.clone().json().catch(() => null);
+  if (!body || typeof body !== "object" || Array.isArray(body)) return false;
+  const keys = Object.keys(body);
+  return keys.length > 0 && keys.every((k) => (BILLING_FIELDS as readonly string[]).includes(k));
+}
 
 export async function keyActor(owner: KeyOwner): Promise<Actor> {
   const [user, key] = await Promise.all([

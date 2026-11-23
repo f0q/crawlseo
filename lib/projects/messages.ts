@@ -547,6 +547,7 @@ export const PROJECT_MESSAGES = {
     memberNotFound: "Member not found",
     siteNotFound: "Site not found",
     forbidden: (role: string, need: string) => `Your role in this project is ${role}; this needs ${need} or above.`,
+    billingKey: "This key only reads the project list and sets paidUntil, contractEnd and billingNeverPause with PATCH /api/v1/projects/{slug}.",
     readOnlyKey: "This key is read-only. Create a key with the write scope in Settings > MCP to change projects.",
     slug: "slug must be 2 to 48 of a-z, 0-9 and -, not starting or ending with -",
     slugReserved: "This slug is reserved, pick another one",

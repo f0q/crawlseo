@@ -138,6 +138,53 @@ describe("the write scope and roles", () => {
   });
 });
 
+describe("a billing key (a CRM)", () => {
+  it("reads the projects and sets only the payment dates; everything else is refused", async () => {
+    const billing = (await createAccessKey(db, "user-a", "crm", "billing")).key;
+    expect((await get("/projects", billing)).status).toBe(200);
+    expect((await get("/projects/quilltab", billing)).status).toBe(200);
+    const ok = await patch("/projects/quilltab", { paidUntil: "2026-12-15", contractEnd: "2027-11-14", billingNeverPause: false }, billing);
+    expect(ok.status).toBe(200);
+    expect(ok.body.project).toMatchObject({ paidUntil: expect.stringMatching(/^2026-12-15/), contractEnd: expect.stringMatching(/^2027-11-14/) });
+
+    const before = await snapshotUserData(db);
+    for (const [method, path, body] of [
+      ["PATCH", "/projects/quilltab", { paidUntil: "2026-12-31", name: "Renamed" }],
+      ["PATCH", "/projects/quilltab", {}],
+      ["POST", "/projects", { name: "New" }],
+      ["POST", "/projects/quilltab/journal", { text: "x" }],
+      ["GET", "/projects/quilltab/notes", undefined],
+      ["GET", "/projects/_groups", undefined],
+      ["GET", "/sites", undefined],
+      ["GET", "/sites/site-a/traffic", undefined],
+      ["GET", "/key", undefined],
+      ["POST", "/projects/quilltab/sites", { domains: ["new.example.com"] }],
+    ] as const) {
+      const r = await call(method, path, billing, body);
+      expect(r.status, `${method} ${path}`).toBe(403);
+      expect(r.body.error).toMatch(/only reads the project list/);
+    }
+    expect(await snapshotUserData(db)).toBe(before);
+  });
+});
+
+describe("sites of a project through the API", () => {
+  it("an editor adds a domain and takes a site out; a viewer and a read-only key cannot", async () => {
+    expect((await post("/projects/quilltab/sites", { domains: ["shop.quilltab-api.com"] }, keys.viewer)).status).toBe(403);
+    expect((await call("POST", "/projects/quilltab/sites", f.keyA, { domains: ["shop.quilltab-api.com"] })).status).toBe(403);
+    const added = await post("/projects/quilltab/sites", { domains: ["shop.quilltab-api.com"] });
+    expect(added.status).toBe(200);
+    const site = (added.body.sites as { id: string; domain: string }[]).find((s) => s.domain === "shop.quilltab-api.com");
+    expect(site).toBeDefined();
+    const removed = await call("DELETE", `/projects/quilltab/sites/${site!.id}`, f.keyAWrite);
+    expect(removed.status).toBe(200);
+    expect((removed.body.sites as { id: string }[]).map((s) => s.id)).not.toContain(site!.id);
+    expect(await db.site.findUnique({ where: { id: site!.id }, select: { projectId: true } })).toEqual({ projectId: null });
+    // Moved into the project again by id.
+    expect((await post("/projects/quilltab/sites", { siteId: site!.id })).status).toBe(200);
+  });
+});
+
 describe("creating a project", () => {
   it("creates it with the caller as owner and adds the domains as their sites", async () => {
     const r = await post("/projects", { name: "Acme Shop", status: "prospect", domains: ["https://www.acme-shop.com/", "quilltab.app"] });

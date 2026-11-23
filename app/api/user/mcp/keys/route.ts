@@ -6,7 +6,8 @@ import { db } from "@/lib/db";
  * POST { name, scope? }: creates an access key for the signed-in user. The
  * answer is the only time the key is shown; only its hash is stored. scope is
  * "read" (the default: GET only) or "write" (agency fork: also writes rank
- * positions through POST /api/v1/sites/{id}/positions).
+ * positions through POST /api/v1/sites/{id}/positions) or "billing" (agency
+ * fork: only the project list and PATCH of a project's payment dates).
  */
 
 export async function POST(req: Request) {
@@ -21,7 +22,7 @@ export async function POST(req: Request) {
   }
   const scope = body?.scope === undefined || body.scope === null ? "read" : body.scope;
   if (!isKeyScope(scope)) {
-    return Response.json({ error: 'scope must be "read" or "write".' }, { status: 400 });
+    return Response.json({ error: 'scope must be "read", "write" or "billing".' }, { status: 400 });
   }
   if ((await db.accessKey.count({ where: { userId } })) >= MAX_KEYS_PER_USER) {
     return Response.json({ error: `You have ${MAX_KEYS_PER_USER} keys. Revoke one first.` }, { status: 409 });

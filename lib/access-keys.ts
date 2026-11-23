@@ -22,14 +22,15 @@ export const MAX_KEYS_PER_USER = 20;
 type Db = Pick<PrismaClient, "accessKey">;
 
 /** "read": GET only. "write": also POST /api/v1/sites/{id}/positions (agency fork). */
-export const KEY_SCOPES = ["read", "write"] as const;
+/** Agency fork: "billing" only reads the project list and sets a project's payment dates (lib/api-v1/router.ts). */
+export const KEY_SCOPES = ["read", "write", "billing"] as const;
 export type KeyScope = (typeof KEY_SCOPES)[number];
 
 export function isKeyScope(value: unknown): value is KeyScope {
   return typeof value === "string" && (KEY_SCOPES as readonly string[]).includes(value);
 }
 
-const scopeOf = (value: string): KeyScope => (value === "write" ? "write" : "read");
+const scopeOf = (value: string): KeyScope => (value === "write" || value === "billing" ? value : "read");
 
 export function hashKey(key: string): string {
   return createHash("sha256").update(key).digest("hex");

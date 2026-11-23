@@ -3,7 +3,7 @@ import { apiRateLimitPerMinute, RateLimiter } from "@/lib/rate-limit";
 import { checkKey } from "./auth";
 import * as read from "./handlers";
 import { MAX_PUSH_BYTES, positions, pushPositions, rankEngines } from "@/lib/rank-providers/api-v1";
-import { PROJECT_API_METHODS, PROJECTS_ROOT, projectsApi } from "@/lib/projects/api-v1";
+import { billingKeyAllows, PROJECT_API_METHODS, PROJECTS_ROOT, projectsApi } from "@/lib/projects/api-v1";
 import { PROJECT_MESSAGES } from "@/lib/projects/messages";
 import { yandexMetrika, yandexWebmaster } from "@/lib/yandex/api-v1";
 import { ApiError } from "./params";
@@ -165,7 +165,7 @@ export async function handleApiV1(req: Request, opts: { countRequest?: boolean }
   const path = url.pathname.startsWith(PREFIX) ? url.pathname.slice(PREFIX.length) : "";
   const rawSegments = path.split("/").filter(Boolean);
   const writing = req.method === "POST" && isWritePath(rawSegments);
-  // Agency fork: client projects take GET, POST and PATCH (lib/projects).
+  // Agency fork: client projects take GET, POST, PATCH and DELETE of a site (lib/projects).
   const projects = rawSegments[0] === PROJECTS_ROOT;
   if (projects && !(PROJECT_API_METHODS as readonly string[]).includes(req.method)) {
     return json({ error: PROJECT_MESSAGES.errors.method }, 405, { Allow: PROJECT_API_METHODS.join(", ") });
@@ -187,9 +187,13 @@ export async function handleApiV1(req: Request, opts: { countRequest?: boolean }
     if (!rate.ok) return json({ error: RATE_LIMITED_MESSAGE }, 429, rateHeaders);
 
     const segments = rawSegments.map(segment);
+    // Agency fork: a "billing" key (a CRM) only reads the projects and sets their payment dates.
+    if (owner.scope === "billing" && !(await billingKeyAllows(req, segments))) {
+      return json({ error: PROJECT_MESSAGES.errors.billingKey }, 403, rateHeaders);
+    }
     if (projects) {
       if (req.method !== "GET") {
-        if (owner.scope !== "write") return json({ error: PROJECT_MESSAGES.errors.readOnlyKey }, 403, rateHeaders);
+        if (owner.scope !== "write" && owner.scope !== "billing") return json({ error: PROJECT_MESSAGES.errors.readOnlyKey }, 403, rateHeaders);
         const w = countWrite(owner.keyId);
         if (!w.ok) return json({ error: RATE_LIMITED_MESSAGE }, 429, { ...rateHeaders, ...w.headers });
       }

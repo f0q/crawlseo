@@ -33,6 +33,13 @@ function CopyButton({ text, label }: { text: string; label: string }) {
 
 /** The key's scope: read-only, or read and write positions (agency fork). */
 function ScopeBadge({ scope }: { scope: KeyScope }) {
+  if (scope === "billing") {
+    return (
+      <span className="mono-label inline-flex shrink-0 items-center rounded-md border border-border px-1.5 py-0 text-[10px] leading-4 text-muted-foreground">
+        payment dates only
+      </span>
+    );
+  }
   return scope === "write" ? (
     <span className="mono-label inline-flex shrink-0 items-center rounded-md border border-warning/40 bg-warning-bg px-1.5 py-0 text-[10px] leading-4 text-warning">
       read + write positions
@@ -204,6 +211,17 @@ export function McpSection({ initial, endpoint }: { initial: McpStatus; endpoint
                 className="accent-brand-500"
               />
               Read and write positions
+            </label>
+            <label className="flex items-center gap-1.5">
+              <input
+                type="radio"
+                name="scope"
+                value="billing"
+                checked={scope === "billing"}
+                onChange={() => setScope("billing")}
+                className="accent-brand-500"
+              />
+              Payment dates only (for a CRM)
             </label>
           </fieldset>
         </form>

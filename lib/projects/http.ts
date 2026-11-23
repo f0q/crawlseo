@@ -275,7 +275,7 @@ export async function routeProjects(
       throw notAllowed();
 
     case "sites":
-      if (!dashboard) break;
+      // Agency fork: an access key adds sites to a project and takes one out too (an agent setting up a project).
       if (id === undefined && method === "POST") return json(await svc.addSites(actor, slug, await jsonBody(req)));
       if (id !== undefined && method === "DELETE") return json(await svc.removeSite(actor, slug, id));
       throw notAllowed();
