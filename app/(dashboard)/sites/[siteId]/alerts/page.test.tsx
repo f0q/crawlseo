@@ -31,4 +31,17 @@ describe("alerts page", () => {
     expect(html).toContain('href="/settings#webhook"');
     expect(html).toContain('href="/settings#email"');
   });
+
+  // Agency fork: the rule in words instead of its config JSON, and the last fire in the user's zone.
+  it("shows the alert rule as text and the last fire in the display time zone", async () => {
+    db.alert.findMany.mockResolvedValueOnce([
+      { id: "a2", type: "TRAFFIC_DROP", channel: "email", enabled: true, lastFired: new Date("2026-11-22T17:30:00Z"), config: { thresholdPct: -20 } },
+    ] as never);
+    const html = renderToStaticMarkup(await AlertsPage({ params: Promise.resolve({ siteId: "site-1" }) }));
+    expect(html).toContain("fall 20% or more");
+    expect(html).not.toContain("thresholdPct");
+    // No settings row in this mock: the default zone, Asia/Makassar (UTC+8).
+    expect(html).toContain("Last fired 23 Nov 2026 01:30");
+    expect(html).not.toContain("UTC");
+  });
 });

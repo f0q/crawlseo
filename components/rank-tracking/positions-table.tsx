@@ -14,6 +14,7 @@ import {
   useTableSort,
   type MetricHeader,
 } from "@/components/ui/data-table";
+import { ShowMore, useShowMore, visibleRows } from "@/components/ui/show-more";
 
 const T = RANK_UI.table;
 
@@ -108,6 +109,9 @@ export function PositionsTable({ rows, comparison }: { rows: KeywordPosition[]; 
       : withSort;
     return sortRows(out, sort);
   }, [rows, comparison, deferred, sort]);
+  // A page of rows at a time; the filter and the sort run on every keyword first.
+  const page = useShowMore(JSON.stringify([deferred, sort, comparison?.source ?? null]));
+  const visible = visibleRows(filtered, page.limit);
 
   return (
     <div className="space-y-3">
@@ -125,9 +129,9 @@ export function PositionsTable({ rows, comparison }: { rows: KeywordPosition[]; 
           sort={sort}
           onSort={toggle}
           headers={headers}
-          footer={T.footer(filtered.length, rows.length, sortLabel(headers, sort))}
+          footer={T.footer(visible.shown, filtered.length, rows.length, sortLabel(headers, sort))}
         >
-          {filtered.map((r) => (
+          {visible.rows.map((r) => (
             <tr key={r.keyword} className="transition-colors hover:bg-bg-soft">
               <td className="px-4 py-3 font-medium text-text-strong">{r.keyword}</td>
               <td className="px-4 py-3 text-right">{r.frequency !== null ? <NumCell value={r.frequency} /> : "n/a"}</td>
@@ -173,6 +177,7 @@ export function PositionsTable({ rows, comparison }: { rows: KeywordPosition[]; 
           ))}
         </MetricTable>
       )}
+      <ShowMore hidden={visible.hidden} total={filtered.length} onMore={page.more} onAll={page.all} />
     </div>
   );
 }

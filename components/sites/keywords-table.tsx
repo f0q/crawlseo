@@ -3,6 +3,7 @@
 import { useDeferredValue, useMemo, useState } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import type { KeywordRow } from "@/lib/seo-metrics";
+import { ShowMore, useShowMore, visibleRows } from "@/components/ui/show-more";
 import {
   PositionBadge,
   MetricTable,
@@ -79,6 +80,10 @@ export function KeywordsTable({ keywords }: { keywords: KeywordRow[] }) {
     minImpressionsNum,
     sort,
   ]);
+
+  // Agency fork: a page of rows at a time (components/ui/show-more.tsx).
+  const page = useShowMore(JSON.stringify([deferredSearch, position, minClicksNum, minImpressionsNum, sort]));
+  const visible = visibleRows(filtered, page.limit);
 
   const hasActiveFilters =
     search.trim() !== "" ||
@@ -194,9 +199,9 @@ export function KeywordsTable({ keywords }: { keywords: KeywordRow[] }) {
           sort={sort}
           onSort={toggle}
           headers={HEADERS}
-          footer={`Showing ${filtered.length} of ${keywords.length} keywords · sorted by ${sortLabel(HEADERS, sort)}`}
+          footer={`Showing ${visible.shown} of ${filtered.length}${filtered.length < keywords.length ? ` matching (${keywords.length} in all)` : ""} keywords · sorted by ${sortLabel(HEADERS, sort)}`}
         >
-          {filtered.map((keyword) => (
+          {visible.rows.map((keyword) => (
             <tr
               key={keyword.query}
               className="transition-colors hover:bg-bg-soft"
@@ -222,6 +227,7 @@ export function KeywordsTable({ keywords }: { keywords: KeywordRow[] }) {
           ))}
         </MetricTable>
       )}
+      <ShowMore hidden={visible.hidden} total={filtered.length} onMore={page.more} onAll={page.all} />
     </div>
   );
 }

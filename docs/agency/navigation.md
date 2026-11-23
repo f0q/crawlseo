@@ -34,6 +34,20 @@ page: the project (a link to it) and the domain. A site in none of the user's
 projects says "Sites without a project" and links to that block of
 `/projects`.
 
+Since UX step 3:
+
+- Keywords and Positions render 100 rows and grow with "Show 100 more" or
+  "Show all" (`components/ui/show-more.tsx`). Filters and sorting run on every
+  row first and the footer counts them; CSV export is server side and has
+  every row.
+- Alerts describe each rule in words ("Fires when Search Console clicks of the
+  last 7 days fall 20% or more ...", `lib/alerts/describe.ts`) instead of the
+  config JSON.
+- The Positions chart scales its lines to the top 3/10/30 counts; keywords not
+  ranked are a band of their own under them (the share of all keywords), so
+  a big "not ranked" count no longer flattens the lines.
+- Date-times are shown in the user's time zone: see [time-zone.md](time-zone.md).
+
 ## Projects page
 
 No All sites button. Since UX step 2 a table, not cards: Needs attention, then

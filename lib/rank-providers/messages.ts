@@ -50,11 +50,13 @@ export const RANK_UI = {
     notChecked: "not checked",
     newEntry: "new",
     lost: "lost",
-    footer: (shown: number, total: number, sort: string) => `Showing ${shown} of ${total} keywords · sorted by ${sort}`,
+    footer: (shown: number, matching: number, total: number, sort: string) =>
+      `Showing ${shown} of ${matching}${matching < total ? ` matching (${total} in all)` : ""} keywords · sorted by ${sort}`,
   },
   chart: {
     title: "Keywords in the top over time",
     empty: "The trend shows once there are two checks.",
+    notRankedBand: "Not ranked (band below, share of keywords)",
   },
   settings: {
     title: "Rank tracking",

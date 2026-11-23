@@ -6,6 +6,7 @@ import { ensureDefaultAlerts } from "@/lib/alerts/evaluate";
 import { PageHeader } from "@/components/ui/page-header";
 import { EvaluateAlertsButton } from "@/components/sites/evaluate-alerts-button";
 import { formatDay } from "@/lib/format";
+import { describeAlertRule } from "@/lib/alerts/describe";
 import { getDisplayTimeZone } from "@/lib/timezone-server";
 
 /** Names for types whose enum name does not read well. */
@@ -71,9 +72,10 @@ export default async function AlertsPage({ params }: Props) {
                   ? `Last fired ${formatDay(a.lastFired, { year: true, time: true, timeZone })}`
                   : "Never fired"}
               </p>
-              <p className="mt-1 font-data text-[11px] text-muted-foreground">
-                {JSON.stringify(a.config)}
-              </p>
+              {/* Agency fork: the rule in words, not its config JSON (lib/alerts/describe.ts). */}
+              {describeAlertRule(a.type, a.config) && (
+                <p className="mt-1 text-[12px] text-muted-foreground">{describeAlertRule(a.type, a.config)}</p>
+              )}
             </div>
             <span
               className={
