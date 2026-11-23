@@ -18,15 +18,11 @@ export const PROJECT_MESSAGES = {
     group: "Clients",
     projects: "Projects",
     allSites: "All sites",
-    allProjects: "All projects",
     switcher: (label: string) => `Project: ${label}`,
-    sitePicker: (label: string) => `Site: ${label}`,
-    chooseSite: "Choose a site",
     unassigned: "Sites without a project",
     ungrouped: "Not in a group",
     groupLabel: (name: string) => name,
     newProject: "New project",
-    backToProject: (name: string) => `Back to ${name}`,
     sources: "Data sources",
     groups: "Groups",
     project: "Project",
@@ -35,6 +31,27 @@ export const PROJECT_MESSAGES = {
     settings: "Settings",
     goToProject: "Go to project\u2026",
     siteOverview: "Site overview",
+    // Navigation step B: the project's sections and its sites' pages in one sidebar.
+    addDomain: "Add a domain",
+    linkToProject: "Link to a project",
+    sitePages: {
+      keywords: "Keywords",
+      savedKeywords: "Saved keywords",
+      positions: "Positions",
+      pages: "Pages",
+      crawl: "Crawl / Audit",
+      vitals: "Vitals",
+      opportunities: "Opportunities",
+      alerts: "Alerts",
+      keywordResearch: "Keyword research",
+      domainOverview: "Domain overview",
+      backlinks: "Backlinks",
+      settings: "Site settings",
+    },
+    sections: (name: string) => `Sections of ${name}`,
+    openMenu: "Open menu",
+    closeMenu: "Close menu",
+    breadcrumbs: "Breadcrumbs",
   },
 
   list: {
@@ -204,7 +221,7 @@ export const PROJECT_MESSAGES = {
     yandexNotConnected: "The site owner's Yandex account is not connected (Settings > Connections).",
     failed: "The last attempt failed",
     dataTitle: "Data",
-    allSources: "All data sources",
+    allSources: "In the panel for all projects \u2192",
   },
 
   billing: {
@@ -240,8 +257,8 @@ export const PROJECT_MESSAGES = {
   },
 
   detail: {
-    back: "All projects",
-    meta: (status: string, role: string, sites: number) => `${status} · you: ${role} · ${sites} site${sites === 1 ? "" : "s"}`,
+    // Navigation step B: the status is the badge next to the title, the role is not repeated.
+    meta: (sites: number) => `${sites} site${sites === 1 ? "" : "s"}`,
     deleteProject: "Delete project",
     deleteConfirm: "Delete this project with its notes, files, tasks and journal? Its sites stay.",
     deleting: "Deleting...",

@@ -7,7 +7,16 @@ import { PROJECT_STATUSES } from "./schema";
  */
 
 export type NavSite = { id: string; domain: string };
-export type NavProject = { slug: string; name: string; status: string; group: string | null; sites: NavSite[] };
+export type NavProject = {
+  slug: string;
+  name: string;
+  status: string;
+  group: string | null;
+  /** The actor's own sites in the project (only an owner opens a site). */
+  sites: NavSite[];
+  /** Editor or owner: may add a domain to the project. */
+  canEdit: boolean;
+};
 export type NavGroup<T> = { name: string | null; projects: T[] };
 export type ProjectNav = {
   groups: NavGroup<NavProject>[];

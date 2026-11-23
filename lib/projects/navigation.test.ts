@@ -114,21 +114,22 @@ describe("the project switcher", () => {
       ["Adelante", ["centro-italica"]],
     ]);
     expect(nav.groups[0].projects[0].sites).toEqual([{ id: "site-a", domain: "quilltab.app" }]);
+    expect(nav.groups[0].projects[0].canEdit).toBe(true);
     expect(nav.unassigned).toEqual([{ id: "site-orphan", domain: "orphan.example" }]);
     // Never another user's project or site.
     expect(JSON.stringify(nav)).not.toMatch(/secret/);
 
     // A viewer sees the project, not user A's site in it (only the owner opens a site).
     const v = await loadProjectNav(viewer);
-    expect(v.groups.flatMap((g) => g.projects).map((p) => [p.slug, p.sites.length])).toEqual([["quilltab", 0]]);
+    expect(v.groups.flatMap((g) => g.projects).map((p) => [p.slug, p.sites.length, p.canEdit])).toEqual([["quilltab", 0, false]]);
     expect(v.unassigned).toEqual([]);
   });
 
   it("knows the project and site of the open page", () => {
     const nav: ProjectNav = {
       groups: [
-        { name: "G", projects: [{ slug: "one", name: "One", status: "client", group: "G", sites: [{ id: "s1", domain: "one.example" }, { id: "s2", domain: "two.example" }] }] },
-        { name: null, projects: [{ slug: "empty", name: "Empty", status: "prospect", group: null, sites: [] }] },
+        { name: "G", projects: [{ slug: "one", name: "One", status: "client", group: "G", canEdit: true, sites: [{ id: "s1", domain: "one.example" }, { id: "s2", domain: "two.example" }] }] },
+        { name: null, projects: [{ slug: "empty", name: "Empty", status: "prospect", group: null, canEdit: true, sites: [] }] },
       ],
       unassigned: [{ id: "s9", domain: "orphan.example" }],
     };

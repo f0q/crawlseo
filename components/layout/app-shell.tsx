@@ -6,9 +6,8 @@ import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
 import { formatDay } from "@/lib/format";
 import { Logo } from "@/components/brand/logo";
-import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { CloudPromo } from "@/components/layout/cloud-promo";
-import { ProjectSwitcher } from "@/components/projects/project-switcher";
+import { ProjectSidebar } from "@/components/projects/project-sidebar";
 import { GlobalNav } from "@/components/projects/global-nav";
 import type { ProjectNav } from "@/lib/projects/navigation";
 import { UserMenu } from "@/components/layout/user-menu";
@@ -107,10 +106,10 @@ export function AppShell({ email, name, image, version, update, children, sites,
             )}
           </button>
         </div>
-        <ProjectSwitcher nav={nav} collapsed={collapsed} />
       </div>
 
-      <SidebarNav sites={sites} collapsed={collapsed} projectNav={nav} research={research} />
+      {/* Agency fork: Projects, the project switcher, the project's sections and its sites (components/projects/project-sidebar.tsx). */}
+      <ProjectSidebar nav={nav} research={research} collapsed={collapsed} />
 
       {/* Agency fork: the bottom stays in view while the middle scrolls; the General block sits above the user. */}
       <div className="sticky bottom-0 mt-auto -mb-5 flex flex-col gap-3 bg-sidebar pb-5">

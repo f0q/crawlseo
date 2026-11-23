@@ -28,9 +28,6 @@ export default async function GroupsPage() {
 
   return (
     <div>
-      <Link href="/projects" className="mb-3 inline-block text-[13px] text-muted-foreground hover:text-text-strong">
-        {M.detail.back}
-      </Link>
       <PageHeader title={T.title} description={T.description} />
       <div className="grid grid-cols-1 items-start gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.5fr)]">
         <div className="flex flex-col gap-5">

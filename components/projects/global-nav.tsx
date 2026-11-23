@@ -28,8 +28,11 @@ export function GlobalNav({ collapsed = false }: { collapsed?: boolean }) {
   );
 }
 
-/** One sidebar item: the label, or only its icon when collapsed. The active item has a neutral background and weight only. */
-export function NavItemLink({ item, collapsed, className }: { item: NavLink; collapsed: boolean; className?: string }) {
+/**
+ * One sidebar item: the label (after its icon with `withIcon`), or only its
+ * icon when collapsed. The active item has a neutral background and weight only.
+ */
+export function NavItemLink({ item, collapsed, withIcon = false, className }: { item: NavLink; collapsed: boolean; withIcon?: boolean; className?: string }) {
   const Icon = NAV_ICONS[item.icon];
   if (collapsed) {
     return (
@@ -53,11 +56,12 @@ export function NavItemLink({ item, collapsed, className }: { item: NavLink; col
       href={item.href}
       aria-current={item.active ? "page" : undefined}
       className={cn(
-        "flex h-[34px] items-center rounded-md px-2.5 text-[14px] transition-colors",
+        "flex h-[34px] items-center gap-2 rounded-md px-2.5 text-[14px] transition-colors",
         item.active ? "bg-border-soft font-medium text-text-strong" : "text-text hover:bg-bg-section hover:text-text-strong",
         className
       )}
     >
+      {withIcon && <Icon className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
       <span className="truncate">{item.label}</span>
     </Link>
   );

@@ -83,10 +83,15 @@ describe("projects pages", () => {
   });
 
   it("renders every tab of a project, the Overview by default", async () => {
-    expect(await page()).toMatch(/aria-current="page"[^>]*>Overview<[\s\S]*Last 28 days[\s\S]*quilltab\.app[\s\S]*Clicks[\s\S]*Visits from Yandex search[\s\S]*Rank tracking[\s\S]*Off[\s\S]*Tasks \(1 open\)[\s\S]*Fix titles[\s\S]*Audited the titles/);
+    // Navigation step B: no tabs on the page (the sections are in the sidebar); the path is Projects / project / section.
+    const overview = await page();
+    expect(overview).toMatch(/aria-label="Breadcrumbs"[^>]*>[^]*href="\/projects"[^]*>Projects<[^]*aria-current="page"[^>]*>Quilltab</);
+    expect(overview).not.toContain("you: ");
+    expect(overview).not.toContain('<nav aria-label="Quilltab"');
+    expect(await page("tasks")).toMatch(/href="\/projects\/quilltab"[^>]*>Quilltab<[^]*aria-current="page"[^>]*>Tasks</);
+    expect(overview).toMatch(/Last 28 days[\s\S]*quilltab\.app[\s\S]*Clicks[\s\S]*Visits from Yandex search[\s\S]*Rank tracking[\s\S]*Off[\s\S]*Tasks \(1 open\)[\s\S]*Fix titles[\s\S]*Audited the titles/);
     expect(await page("overview")).toContain("Last 28 days");
-    // Agency fork UX step 3: six tabs; About = passport + brief + members, Data = sources + sites + rank tracking.
-    expect(await page()).toMatch(/>Overview<[\s\S]*>Tasks<[\s\S]*>Journal<[\s\S]*>Data<[\s\S]*>Money<[\s\S]*>About</);
+    // Agency fork UX step 3: About = passport + brief + members, Data = sources + sites + rank tracking.
     expect(await page("about")).toMatch(/id="passport"[\s\S]*Passport[\s\S]*QUILLTAB_PANEL_PASS[\s\S]*id="brief"[\s\S]*Grow organic sign-ups[\s\S]*Files[\s\S]*id="members"[\s\S]*Members[\s\S]*Delete project/);
     expect(await page("data")).toMatch(/id="sources"[\s\S]*Search Console[\s\S]*id="sites"[\s\S]*quilltab\.app[\s\S]*Remove from project[\s\S]*Visits from Yandex search[\s\S]*SQI[\s\S]*id="rank"[\s\S]*Start checks for this project[\s\S]*None \(Search Console or other data only\)[\s\S]*0 checks per month[\s\S]*All projects this month[\s\S]*No run yet/);
     expect(await page("tasks")).toContain("Fix titles");

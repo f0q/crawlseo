@@ -105,7 +105,8 @@ function ProjectRows({ row, timeZone }: { row: SourceProjectRow; timeZone: strin
   const several = row.sites.length > 1;
   return (
     <>
-      <tr id={`p-${row.slug}`} className="scroll-mt-20 border-t border-border align-top">
+      {/* Agency fork: the row a project links to (#p-{slug}) is highlighted. */}
+      <tr id={`p-${row.slug}`} className="scroll-mt-20 border-t border-border align-top target:bg-bg-section">
         <th scope="row" className="px-4 py-3 font-normal">
           <Link href={`/projects/${row.slug}`} className="text-[14px] font-medium text-text-strong hover:underline">
             {row.name}

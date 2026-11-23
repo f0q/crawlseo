@@ -11,7 +11,6 @@ import { listGroupSummaries } from "@/lib/projects/groups";
 import { getBudget } from "@/lib/projects/budget";
 import { getRankSettings } from "@/lib/projects/rank";
 import { MONTH_PATTERN } from "@/lib/projects/rank-usage";
-import { cn } from "@/lib/utils";
 import { PageHeader } from "@/components/ui/page-header";
 import { FilesSection } from "@/components/projects/files-section";
 import { JournalSection } from "@/components/projects/journal-section";
@@ -29,7 +28,8 @@ import { OverviewSection } from "@/components/projects/overview-section";
 import { projectOverview } from "@/lib/projects/overview";
 import { sourcesMatrix } from "@/lib/projects/sources";
 import { SourcesStrip } from "@/components/projects/source-cells";
-import { PROJECT_TABS, projectTabHref, resolveProjectTab } from "@/lib/projects/tabs";
+import { projectTabHref, resolveProjectTab } from "@/lib/projects/tabs";
+import { Breadcrumbs } from "@/components/projects/breadcrumbs";
 import { getDisplayTimeZone } from "@/lib/timezone-server";
 
 const iso = (d: Date) => d.toISOString();
@@ -39,7 +39,8 @@ const passportFormKey = (p: { name: string; status: string; testUrl: string | nu
   JSON.stringify([p.name, p.status, p.testUrl, p.geo, p.language, p.searchEngines, p.cms, p.hosting, p.contacts, p.accessNotes]);
 
 /**
- * Agency fork: one client project, in six tabs (UX step 3): overview (the default), tasks, journal,
+ * Agency fork: one client project, in six sections (UX step 3; since the navigation step B they are
+ * items of the sidebar, still `?tab=`): overview (the default), tasks, journal,
  * data (sources, sites, rank tracking), money (client payment and spending), about (passport, brief
  * and materials, members). Former tab keys (`?tab=sites`, `rank`, `budget`, `passport`, `brief`)
  * redirect to their new tab and section (lib/projects/tabs.ts).
@@ -161,33 +162,16 @@ export default async function ProjectPage({
 
   return (
     <div>
-      <Link href="/projects" className="mb-3 inline-block text-[13px] text-muted-foreground hover:text-text-strong">
-        {M.detail.back}
-      </Link>
-      <PageHeader
-        title={project.name}
-        meta={M.detail.meta(
-          (M.labels.status as Record<string, string>)[project.status] ?? project.status,
-          M.labels.role[project.role],
-          sites.length
-        )}
-        actions={<StatusBadge status={project.status} />}
+      {/* Agency fork, navigation step B: the sections are in the sidebar (and the strip under the mobile header), not tabs. */}
+      <Breadcrumbs
+        label={M.nav.breadcrumbs}
+        items={[
+          { label: M.nav.projects, href: "/projects" },
+          tab === "overview" ? { label: project.name } : { label: project.name, href: projectTabHref(slug, "overview") },
+          ...(tab === "overview" ? [] : [{ label: M.tabs[tab] }]),
+        ]}
       />
-      <nav aria-label={project.name} className="mb-5 flex gap-1 overflow-x-auto border-b border-border">
-        {PROJECT_TABS.map((t) => (
-          <Link
-            key={t}
-            href={projectTabHref(slug, t)}
-            aria-current={t === tab ? "page" : undefined}
-            className={cn(
-              "-mb-px border-b-2 px-3 py-2 text-[14px] whitespace-nowrap transition-colors",
-              t === tab ? "border-brand-500 text-text-strong" : "border-transparent text-muted-foreground hover:text-text-strong"
-            )}
-          >
-            {M.tabs[t]}
-          </Link>
-        ))}
-      </nav>
+      <PageHeader title={project.name} meta={M.detail.meta(sites.length)} actions={<StatusBadge status={project.status} />} />
       {body}
     </div>
   );

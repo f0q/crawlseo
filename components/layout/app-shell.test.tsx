@@ -5,10 +5,11 @@ import { describe, expect, it, vi } from "vitest";
 
 // Sidebar footer: the user button (avatar, name) and the app version under it.
 
-const nav = vi.hoisted(() => ({ pathname: "/sites" }));
+const nav = vi.hoisted(() => ({ pathname: "/sites", search: "" }));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => nav.pathname,
+  useSearchParams: () => new URLSearchParams(nav.search),
   useRouter: () => ({ push: () => {}, refresh: () => {} }),
 }));
 vi.mock("@/app/(dashboard)/settings/actions", () => ({ signOutAction: vi.fn() }));
@@ -17,6 +18,8 @@ const { AppShell } = await import("./app-shell");
 const { APP_VERSION } = await import("@/lib/version");
 const { SiteSwitcher } = await import("@/components/sites/site-switcher");
 const { SITE_SUB_PAGES } = await import("@/lib/site-routes");
+const { ProjectSidebar } = await import("@/components/projects/project-sidebar");
+const { GlobalNav } = await import("@/components/projects/global-nav");
 
 const SITES = [
   { id: "site-a", domain: "Alpha.example", dataThrough: null },
@@ -99,14 +102,16 @@ describe("sidebar home and workspace switcher", () => {
     expect(html).not.toMatch(/aria-label="crawlseo"[^>]*href="\/sites"|href="\/sites" aria-label="crawlseo"/);
   });
 
-  it("shows All projects in the switcher, a Projects item and no site groups on the home", () => {
+  it("shows Go to project in the switcher, a Projects item and no site groups on the home", () => {
     nav.pathname = "/sites";
     const html = render({ name: "Mike", sites: SITES });
-    expect(html).toContain('aria-label="Project: All projects"');
+    expect(html).toContain('aria-label="Project: Go to project\u2026"');
     expect(html).toContain('href="/projects"');
+    expect(html).not.toContain(">All projects<");
     expect(html).not.toContain(">Clients<");
     expect(html).not.toContain(">Workspace<");
     expect(html).not.toContain(">Research<");
+    expect(html).not.toContain(">Site overview<");
   });
 
   it("has a General block with Data sources, Groups and Settings on every page, the open one highlighted", () => {
@@ -131,42 +136,60 @@ describe("sidebar home and workspace switcher", () => {
 
   it("shows the switcher with no sites too", () => {
     nav.pathname = "/sites";
-    expect(render({ name: "Mike" })).toContain('aria-label="Project: All projects"');
+    expect(render({ name: "Mike" })).toContain('aria-label="Project: Go to project\u2026"');
   });
 
-  it("names the site group after the domain, in its own case, with Research and without AI & MCP", () => {
+  it("names a site's section after the domain, in its own case, with Research and without AI & MCP", () => {
     nav.pathname = "/sites/site-a/keywords";
     const html = render({ name: "Mike", sites: SITES });
     // Without project data, every site counts as one without a project.
     expect(html).toContain('aria-label="Project: Sites without a project"');
     expect(html).toContain(">Alpha.example<");
+    expect(html).toContain(">Link to a project<");
     expect(html).not.toContain(">Workspace<");
-    expect(html).toContain(">Research<");
+    expect(html).not.toContain(">Connect<");
+    expect(html).toContain(">Keyword research<");
     expect(html).toContain('href="/sites/site-a/keywords"');
     expect(html).not.toContain('href="/sites/site-a/mcp"');
-    expect(render({ name: "Mike", sites: SITES, research: false })).not.toContain(">Research<");
+    expect(render({ name: "Mike", sites: SITES, research: false })).not.toContain(">Keyword research<");
   });
 
-  it("on a site of a project: the project in the switcher, the way back to it and a picker of its sites", () => {
-    const projectNav = {
-      groups: [{ name: "Group", projects: [{ slug: "one", name: "One", status: "client", group: "Group", sites: SITES.map(({ id, domain }) => ({ id, domain })) }] }],
-      unassigned: [],
-    };
-    nav.pathname = "/sites/site-a/keywords";
-    const html = render({ name: "Mike", sites: SITES, projectNav });
-    expect(html).toContain('aria-label="Project: One"');
-    expect(html).toContain('href="/projects/one"');
-    expect(html).toContain(">Back to One<");
-    expect(html).toContain('aria-label="Site: Alpha.example"');
+  it("on a project and its site: one sidebar with the project's sections and the site's pages, no way back line or site picker", () => {
+    const project = { slug: "one", name: "One", status: "client", group: "Group", canEdit: true, sites: [{ id: "site-a", domain: "Alpha.example" }] };
+    const projectNav = { groups: [{ name: "Group", projects: [project] }], unassigned: [{ id: "site-b", domain: "beta.example" }] };
 
-    // A project with one site shows it as a plain link; the project page has no way back line.
-    const single = { ...projectNav, groups: [{ ...projectNav.groups[0], projects: [{ ...projectNav.groups[0].projects[0], sites: [{ id: "site-a", domain: "Alpha.example" }] }] }] };
+    nav.pathname = "/sites/site-a/keywords";
+    const onSite = render({ name: "Mike", sites: SITES, projectNav });
+    expect(onSite).toContain('aria-label="Project: One"');
+    expect(onSite).toMatch(/>Group<\/span><span[^>]*>One</);
+    expect(onSite).toMatch(/>Project<[^]*href="\/projects\/one"[^]*href="\/projects\/one\?tab=tasks"[^]*>Alpha\.example<[^]*>Site overview<[^]*>Site settings</);
+    expect(onSite).not.toContain("Back to");
+    expect(onSite).not.toContain('aria-label="Site: ');
+    expect(activeHrefs(onSite)).toEqual(["/sites/site-a/keywords"]);
+
     nav.pathname = "/projects/one";
-    const onProject = render({ name: "Mike", sites: SITES, projectNav: single });
-    expect(onProject).toContain('aria-label="Project: One"');
-    expect(onProject).toMatch(/href="\/sites\/site-a"><svg[^]*?>Alpha\.example<\/span><\/a>/);
-    expect(onProject).not.toContain('aria-label="Site: ');
-    expect(onProject).not.toContain("Back to One");
+    nav.search = "tab=journal";
+    const onProject = render({ name: "Mike", sites: SITES, projectNav });
+    expect(onProject).toContain('href="/sites/site-a"');
+    expect(activeHrefs(onProject)).toEqual(["/projects/one?tab=journal"]);
+    nav.search = "";
+  });
+
+  it("collapsed: icons of the project's sections and of the site, the General block too", () => {
+    const project = { slug: "one", name: "One", status: "client", group: null, canEdit: true, sites: [{ id: "site-a", domain: "Alpha.example" }] };
+    const projectNav = { groups: [{ name: null, projects: [project] }], unassigned: [] };
+    nav.pathname = "/projects/one";
+    const html = renderToStaticMarkup(
+      <>
+        <ProjectSidebar nav={projectNav} collapsed />
+        <GlobalNav collapsed />
+      </>
+    );
+    for (const label of ["Projects", "Overview", "Tasks", "About", "Site overview", "Site settings", "Data sources", "Groups", "Settings"]) {
+      expect(html).toContain(`aria-label="${label}"`);
+    }
+    // The switcher is the project's first letter.
+    expect(html).toContain('title="One"');
   });
 
   it("shows a compact square with the site's first letter when collapsed", () => {

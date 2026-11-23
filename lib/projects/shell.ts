@@ -1,5 +1,5 @@
 import { db } from "@/lib/db";
-import { visibleProjects, type Actor } from "./access";
+import { atLeast, rolesOf, visibleProjects, type Actor } from "./access";
 import { sessionActor } from "./dashboard";
 import { groupProjects, type ProjectNav } from "./navigation";
 
@@ -31,6 +31,7 @@ export async function loadProjectNav(actor: Actor): Promise<ProjectNav> {
     db.project.findMany({
       where: visibleProjects(actor),
       select: {
+        id: true,
         slug: true,
         name: true,
         status: true,
@@ -42,8 +43,9 @@ export async function loadProjectNav(actor: Actor): Promise<ProjectNav> {
     db.site.findMany({ where: { userId: actor.userId }, select: { id: true, domain: true }, orderBy: { domain: "asc" } }),
   ]);
   const inProjects = new Set(projects.flatMap((p) => p.sites.map((s) => s.id)));
+  const roles = await rolesOf(actor, projects.map((p) => p.id));
   return {
-    groups: groupProjects(projects),
+    groups: groupProjects(projects.map(({ id, ...p }) => ({ ...p, canEdit: atLeast(roles.get(id) ?? "viewer", "editor") }))),
     unassigned: own.filter((s) => !inProjects.has(s.id)),
   };
 }
