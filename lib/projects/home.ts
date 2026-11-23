@@ -51,6 +51,8 @@ export type ProjectsHome = {
     overdue: number;
   };
   count: number;
+  /** Projects with at least one attention reason; they stay in their group and are marked. */
+  attentionCount: number;
 };
 
 /** Why a project needs attention; empty when it does not. */
@@ -76,7 +78,7 @@ export async function projectsHome(actor: Actor, now = new Date()): Promise<Proj
   const projects = await listProjects(actor);
   const month = monthOf(now);
   if (projects.length === 0) {
-    return { groups: [], totals: sourcesMatrixTotalsEmpty(), summary: { month, budgets: [], checks: [], overdue: 0 }, count: 0 };
+    return { groups: [], totals: sourcesMatrixTotalsEmpty(), summary: { month, budgets: [], checks: [], overdue: 0 }, count: 0, attentionCount: 0 };
   }
   const ids = projects.map((p) => p.id);
   const since = new Date(now.getTime() - ACTIVE_ALERT_DAYS * 86_400_000);
@@ -121,14 +123,14 @@ export async function projectsHome(actor: Actor, now = new Date()): Promise<Proj
     ];
   });
 
-  const attention = rows.filter((r) => r.reasons.length > 0);
-  const rest = rows.filter((r) => r.reasons.length === 0);
+  // Owner decision 2026-11-23: projects that need attention stay in their group and are only marked.
+  const attentionCount = rows.filter((r) => r.reasons.length > 0).length;
+  const rest = rows;
   const stopped = rest.filter((r) => isStoppedStatus(r.project.status));
   const prospects = rest.filter((r) => r.project.status === "prospect");
   const active = rest.filter((r) => !isStoppedStatus(r.project.status) && r.project.status !== "prospect");
 
   const groups: HomeGroup[] = [];
-  if (attention.length) groups.push({ key: "attention", name: null, kind: "attention", rows: attention });
   for (const g of groupProjects(active.map((r) => ({ ...r, name: r.project.name, status: r.project.status, group: r.project.group })))) {
     groups.push({ key: `group:${g.name ?? ""}`, name: g.name, kind: "group", rows: g.projects });
   }
@@ -145,6 +147,7 @@ export async function projectsHome(actor: Actor, now = new Date()): Promise<Proj
       overdue: matrix.projects.filter((p) => p.billing.level === "overdue" || p.billing.level === "paused").length,
     },
     count: projects.length,
+    attentionCount,
   };
 }
 

@@ -66,6 +66,9 @@ describe("projects pages", () => {
     expect(html).not.toContain("Spending this month");
     // Quilltab's Yandex link has no Yandex connection behind it: it needs attention.
     expect(html).toMatch(/Needs attention[\s\S]*Quilltab[\s\S]*source[s]? failing/);
+    // Owner decision 2026-11-23: no separate "Needs attention" section; a count on top and a mark on the row.
+    expect(html).toMatch(/1 project needs attention/);
+    expect(html).not.toMatch(/<h2[^>]*>[^<]*<svg[\s\S]{0,400}Needs attention/);
   });
 
   it("groups projects by group and lists the user's sites outside every project", async () => {

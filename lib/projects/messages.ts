@@ -90,6 +90,7 @@ export const PROJECT_MESSAGES = {
 
   home: {
     attention: "Needs attention",
+    attentionCount: (n: number) => `${n} project${n === 1 ? " needs" : "s need"} attention (marked below)`,
     prospects: "Prospects",
     stopped: "Paused and archived",
     project: "Project",

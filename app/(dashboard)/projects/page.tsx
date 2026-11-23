@@ -82,6 +82,12 @@ export default async function ProjectsPage() {
   return (
     <div>
       <PageHeader title={T.title} meta={T.meta(home.count)} actions={actions} />
+      {home.attentionCount > 0 && (
+        <p className="mb-2 flex items-center gap-2 text-[13px] text-warning">
+          <AlertTriangle aria-hidden className="size-4" />
+          {H.attentionCount(home.attentionCount)}
+        </p>
+      )}
       {summary.length > 0 && (
         <p className="mb-5 text-[13px] text-muted-foreground">
           <span className="font-data">{s.month}</span>: {summary.join(" · ")}
@@ -175,16 +181,19 @@ function HomeRowView({ row, attention, timeZone }: { row: HomeRow; attention: bo
   return (
     <li className={cn("flex flex-col gap-2 px-4 py-3 text-[13px]", ROW_GRID)}>
       <div className="min-w-0">
-        <Link href={`/projects/${p.slug}`} className="text-[15px] leading-6 font-medium text-text-strong decoration-brand-500 underline-offset-4 hover:underline">
-          {p.name}
-        </Link>
+        <span className="flex items-center gap-1.5">
+          {row.reasons.length > 0 && <AlertTriangle aria-label={H.attention} className="size-4 shrink-0 text-warning" />}
+          <Link href={`/projects/${p.slug}`} className="text-[15px] leading-6 font-medium text-text-strong decoration-brand-500 underline-offset-4 hover:underline">
+            {p.name}
+          </Link>
+        </span>
         <p className="truncate font-data text-[12px] text-muted-foreground">{p.sites.length ? p.sites.map((x) => x.domain).join(", ") : T.noSites}</p>
-        {attention && row.reasons.length > 0 && <p className="mt-0.5 text-[12px] text-warning">{row.reasons.map(reasonText).join(" · ")}</p>}
+        {row.reasons.length > 0 && <p className="mt-0.5 text-[12px] text-warning">{row.reasons.map(reasonText).join(" · ")}</p>}
       </div>
       <div>
         <StatusBadge status={p.status} />
       </div>
-      <div className={cn(!attention && "hidden md:block")}>
+      <div className={cn(!(attention || row.reasons.length > 0) && "hidden md:block")}>
         <SourceDots row={row.sources} timeZone={timeZone} />
       </div>
       <div className={cn("font-data text-[12px]", late ? "text-warning" : "text-muted-foreground", !b.tracked && "hidden md:block")}>
