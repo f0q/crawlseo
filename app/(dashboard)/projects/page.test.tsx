@@ -56,7 +56,7 @@ describe("projects pages", () => {
     expect(html).toContain("1 open");
     expect(html).toContain("Audited the titles");
     // Agency fork UX step 2: a table with the data sources of each project and a link to the panel.
-    expect(html).toContain('href="/projects/sources"');
+    expect(html).toContain('href="/projects/sources#p-quilltab"');
     expect(html).toMatch(/aria-label="Data sources: Positions \(paid\)|aria-label="Data sources: Positions:/);
     // Agency fork UX step 1: no All sites button while every site is in a project.
     expect(html).not.toContain('href="/sites"');
@@ -145,9 +145,11 @@ describe("projects pages", () => {
     expect(html).toMatch(/id="group-of-quilltab"[\s\S]*aria-labelledby="group-of-quilltab /);
     expect(html).toMatch(/id="group-of-grouped-two"[\s\S]*aria-labelledby="group-of-grouped-two /);
 
-    // The projects home: a Groups button and the group heading's menu for its owner.
+    // The projects home: the group heading's menu for its owner; Data sources and Groups are in the sidebar's General block only.
     const home = renderToString(await ProjectsPage());
-    expect(home).toContain('href="/projects/groups"');
+    expect(home).not.toContain('href="/projects/groups"');
+    expect(home).not.toContain('href="/projects/sources"');
+    expect(home).toContain('href="/projects/new"');
     expect(home).toContain('aria-label="Actions for group Centro Adelante"');
 
     // The About tab: the group picker saves on its own, no text input with a datalist.

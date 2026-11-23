@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Activity, AlertTriangle, Layers, Plus } from "lucide-react";
+import { AlertTriangle, Plus } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { formatDay } from "@/lib/format";
 import { sessionActor } from "@/lib/projects/dashboard";
@@ -41,14 +41,6 @@ export default async function ProjectsPage() {
 
   const actions = (
     <div className="flex flex-wrap gap-2">
-      <Link href="/projects/sources" className={buttonVariants({ variant: "outline" })}>
-        <Activity aria-hidden />
-        {H.sourcesLink}
-      </Link>
-      <Link href="/projects/groups" className={buttonVariants({ variant: "outline" })}>
-        <Layers aria-hidden />
-        {H.groupsLink}
-      </Link>
       <Link href="/projects/new" className={buttonVariants()}>
         <Plus aria-hidden />
         {T.newProject}

@@ -30,6 +30,11 @@ export const PROJECT_MESSAGES = {
     sources: "Data sources",
     groups: "Groups",
     project: "Project",
+    // Agency fork, navigation step A: the fixed block of pages about every project, at the bottom of the sidebar.
+    general: "General",
+    settings: "Settings",
+    goToProject: "Go to project\u2026",
+    siteOverview: "Site overview",
   },
 
   list: {
@@ -116,8 +121,6 @@ export const PROJECT_MESSAGES = {
       checks: (name: string, used: number, limit: number) => `${name} checks: ${used}${limit > 0 ? ` of ${limit}` : ""} this month`,
       overdue: (n: number) => `payments: ${n} overdue`,
     },
-    sourcesLink: "Data sources",
-    groupsLink: "Groups",
     dotsLabel: (summary: string) => `Data sources: ${summary}`,
   },
 

@@ -9,6 +9,7 @@ import { Logo } from "@/components/brand/logo";
 import { SidebarNav } from "@/components/layout/sidebar-nav";
 import { CloudPromo } from "@/components/layout/cloud-promo";
 import { ProjectSwitcher } from "@/components/projects/project-switcher";
+import { GlobalNav } from "@/components/projects/global-nav";
 import type { ProjectNav } from "@/lib/projects/navigation";
 import { UserMenu } from "@/components/layout/user-menu";
 import type { AvailableUpdate } from "@/lib/update-check";
@@ -76,15 +77,10 @@ export function AppShell({ email, name, image, version, update, children, sites,
     window.dispatchEvent(new Event(COLLAPSED_KEY));
   }
 
-  // Status block: the open site's latest GSC day, or the latest across all sites.
+  // Status block: the open site's latest GSC day. Agency fork: shown only on a site, it is about that site.
   const activeId = pathname.match(/\/sites\/([^/]+)/)?.[1];
   const activeSite = sites.find((s) => s.id === activeId);
-  const dataThrough = activeSite
-    ? activeSite.dataThrough
-    : sites.reduce<string | null>(
-        (max, s) => (s.dataThrough && (!max || s.dataThrough > max) ? s.dataThrough : max),
-        null
-      );
+  const dataThrough = activeSite?.dataThrough ?? null;
 
   const sidebarContent = (
     <div className={cn("flex min-h-full flex-col gap-[22px] py-5", collapsed ? "px-2" : "px-3")}>
@@ -116,10 +112,11 @@ export function AppShell({ email, name, image, version, update, children, sites,
 
       <SidebarNav sites={sites} collapsed={collapsed} projectNav={nav} research={research} />
 
-      <div className="mt-auto flex flex-col gap-3">
+      {/* Agency fork: the bottom stays in view while the middle scrolls; the General block sits above the user. */}
+      <div className="sticky bottom-0 mt-auto -mb-5 flex flex-col gap-3 bg-sidebar pb-5">
         {showCloudPromo && !collapsed && <CloudPromo />}
 
-        {!collapsed && (
+        {!collapsed && activeSite && (
           <div className="flex flex-col gap-1 border-t border-border px-2.5 pt-3 text-[11px] leading-4 text-muted-foreground">
             <span className="mono-label">
               {dataThrough ? `GSC data through ${formatDay(dataThrough)}` : "No GSC data yet"}
@@ -127,6 +124,8 @@ export function AppShell({ email, name, image, version, update, children, sites,
             <span className="mono-label">Search data lags 3 days</span>
           </div>
         )}
+
+        <GlobalNav collapsed={collapsed} />
 
         <UserMenu name={name} email={email} image={image} version={version} update={update} collapsed={collapsed} />
       </div>

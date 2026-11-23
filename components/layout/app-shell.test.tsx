@@ -39,6 +39,14 @@ function render(props: {
   );
 }
 
+/** The hrefs of the links marked as the current page (the desktop sidebar and the mobile drawer render the same links). */
+function activeHrefs(html: string): string[] {
+  return [...new Set([...html.matchAll(/<a [^>]*>/g)]
+    .map((m) => m[0])
+    .filter((a) => a.includes('aria-current="page"'))
+    .map((a) => a.match(/href="([^"]*)"/)?.[1] ?? ""))];
+}
+
 describe("sidebar footer", () => {
   it("shows the package.json version in mono", () => {
     const pkg = JSON.parse(readFileSync(resolve(__dirname, "../../package.json"), "utf8")) as { version: string };
@@ -99,6 +107,26 @@ describe("sidebar home and workspace switcher", () => {
     expect(html).not.toContain(">Clients<");
     expect(html).not.toContain(">Workspace<");
     expect(html).not.toContain(">Research<");
+  });
+
+  it("has a General block with Data sources, Groups and Settings on every page, the open one highlighted", () => {
+    for (const path of ["/projects", "/projects/one", "/sites/site-a/keywords", "/settings"]) {
+      nav.pathname = path;
+      const html = render({ name: "Mike", sites: SITES });
+      expect(html).toMatch(/<nav aria-label="General"[^]*>General<[^]*href="\/projects\/sources"[^]*href="\/projects\/groups"[^]*href="\/settings"/);
+    }
+    nav.pathname = "/projects/groups";
+    const groups = render({ name: "Mike", sites: SITES });
+    expect(activeHrefs(groups)).toEqual(["/projects/groups"]);
+    nav.pathname = "/projects";
+    expect(activeHrefs(render({ name: "Mike", sites: SITES }))).toEqual(["/projects"]);
+  });
+
+  it("shows the GSC status only on a site", () => {
+    nav.pathname = "/projects";
+    expect(render({ name: "Mike", sites: SITES })).not.toContain("GSC data");
+    nav.pathname = "/sites/site-a";
+    expect(render({ name: "Mike", sites: SITES })).toContain("No GSC data yet");
   });
 
   it("shows the switcher with no sites too", () => {
